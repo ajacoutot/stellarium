@@ -69,6 +69,8 @@ class LandscapeMgr : public StelModule
 			READ getFlagUseLightPollutionFromDatabase
 			WRITE setFlagUseLightPollutionFromDatabase
 			NOTIFY lightPollutionUsageChanged)
+	// GZ new
+	Q_PROPERTY(float atmLumFactor READ getAtmLumFactor WRITE setAtmLumFactor)
 
 public:
 	LandscapeMgr();
@@ -135,6 +137,10 @@ public slots:
 	//! For these cases, it is advisable to first center the brightest luminary (sun or moon), call getAtmosphereAverageLuminance() and then set
 	//! this value explicitly to freeze it during image export. To unfreeze, call this again with any negative value.
 	void setAtmosphereAverageLuminance(const float overrideLuminance);
+
+	// GZ additions...
+	void setAtmLumFactor(double val){atmLumFactor=val;}
+	double getAtmLumFactor(void) const {return atmLumFactor;}
 
 	//! Retrieve a list of the names of all the available landscapes in
 	//! the file search path sub-directories of the landscape area
@@ -251,6 +257,9 @@ public slots:
 	void setAtmosphereBortleLightPollution(const int bIndex);
 	//! Get the light pollution following the Bortle Scale
 	int getAtmosphereBortleLightPollution() const;
+
+	// GZ Special purpose to be able to set parameters:
+	Atmosphere* getAtmosphere(void){return atmosphere;}
 
 	//! Set the rotation of the landscape about the z-axis.
 	//! This is intended for special uses such as when the landscape consists of
@@ -423,7 +432,10 @@ private:
 	//! @returns an empty string, if no such landscape was found.
 	QString getLandscapePath(const QString landscapeID) const;
 
+	// Argl - we must make that a public thing!?
+public:
 	Atmosphere* atmosphere;			// Atmosphere
+private:
 	Cardinals* cardinalsPoints;		// Cardinals points
 	Landscape* landscape;			// The landscape i.e. the fog, the ground and "decor"
 	Landscape* oldLandscape;		// Used only during transitions to newly loaded landscape.
@@ -453,6 +465,9 @@ private:
 	//! List of the IDs of the landscapes packaged by default with Stellarium.
 	//! (So that they can't be removed.)
 	QStringList packagedLandscapeIDs;
+
+	// GZ Luminance factor, allows tweaking via atmosphere detail GUI
+	float atmLumFactor;
 
 };
 

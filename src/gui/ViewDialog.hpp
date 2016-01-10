@@ -67,7 +67,10 @@ private slots:
 	void updateFromProgram();
 
 	void showAddRemoveLandscapesDialog();
+	// GZ I make this public to have it on a hotkey...
+public slots:
         void showAtmosphereDialog();
+private slots:
 
 	void populateLightPollution();
 	void populateLandscapeMinimalBrightness();

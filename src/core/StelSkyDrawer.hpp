@@ -20,12 +20,14 @@
 #ifndef _STELSKYDRAWER_HPP_
 #define _STELSKYDRAWER_HPP_
 
+#include "StelApp.hpp"
 #include "RefractionExtinction.hpp"
 #include "StelTextureTypes.hpp"
 #include "StelProjectorType.hpp"
 #include "VecMath.hpp"
 
 #include <QObject>
+#include <QSettings>
 
 class StelToneReproducer;
 class StelCore;
@@ -88,7 +90,8 @@ public:
 	//! @param illuminatedArea the illuminated area in arcmin^2
 	//! @param mag the source integrated magnitude
 	//! @param color the object halo RGB color
-	void postDrawSky3dModel(StelPainter* p, const Vec3f& v, float illuminatedArea, float mag, const Vec3f& color = Vec3f(1.f,1.f,1.f));
+	//! @param isSun the object is the sun (will be drawn with different texture)
+	void postDrawSky3dModel(StelPainter* p, const Vec3f& v, float illuminatedArea, float mag, const Vec3f& color = Vec3f(1.f,1.f,1.f), const bool isSun=false);
 
 	//! Compute RMag and CMag from magnitude.
 	//! @param mag the object integrated V magnitude
@@ -237,6 +240,37 @@ public slots:
 	//! Set the radius of the big halo texture used when a 3d model is very bright.
 	void setBig3dModelHaloRadius(float r) {big3dModelHaloRadius=r;}
 	
+	// GZ These are to find out the best sky parameters. Maybe keep this as program feature for debugging/expert mode?
+	// These will be connected from AtmosphereDialog and forward the settings to SkyLight class.
+	//void setAXt(const float newAXt){
+
+	void setDrawSunAfterAtmosphere(bool val){
+		drawSunAfterAtmosphere=val;
+		QSettings* conf = StelApp::getInstance().getSettings();
+		 conf->setValue("landscape/draw_sun_after_atmosphere",val);
+		}
+	bool getDrawSunAfterAtmosphere() const {return drawSunAfterAtmosphere;}
+	void setUseSunBlending(bool val){
+		useSunBlending= val;
+		QSettings* conf = StelApp::getInstance().getSettings();
+		conf->setValue("landscape/use_sun_blending", val);
+		}
+	bool getUseSunBlending() const {return useSunBlending;}
+
+	bool getFlagTfromK(void) const {return flagTfromK;}
+	void setFlagTfromK(bool val){
+		flagTfromK=val;
+		QSettings* conf = StelApp::getInstance().getSettings();
+		conf->setValue("landscape/use_T_from_k", val);
+		}
+
+	double getT(void) const {return turbidity;}
+	void setT(double newT){
+		turbidity=newT;
+		QSettings* conf = StelApp::getInstance().getSettings();
+		conf->setValue("landscape/turbidity", newT);
+		}
+
 private:
 	// Debug
 	float reverseComputeRCMag(float rmag) const;
@@ -397,6 +431,11 @@ private:
 	bool flagLuminanceAdaptation;
 
 	float big3dModelHaloRadius;
+	// GZ Experiments for Atmospheric tweaks.
+	bool drawSunAfterAtmosphere;
+	bool useSunBlending;
+	bool flagTfromK; // true to compute T from extinction k
+	float turbidity; // need it here...
 };
 
 #endif // _STELSKYDRAWER_HPP_

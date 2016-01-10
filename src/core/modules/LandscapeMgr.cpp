@@ -162,6 +162,7 @@ LandscapeMgr::LandscapeMgr()
 	, defaultMinimalBrightness(0.01)
 	, flagLandscapeSetsMinimalBrightness(false)
 	, flagAtmosphereAutoEnabling(false)
+	, atmLumFactor(1.3f)
 {
 	setObjectName("LandscapeMgr");
 
@@ -230,6 +231,8 @@ void LandscapeMgr::update(double deltaTime)
 	SolarSystem* ssystem = (SolarSystem*)StelApp::getInstance().getModuleMgr().getModule("SolarSystem");
 
 	StelCore* core = StelApp::getInstance().getCore();
+	StelSkyDrawer* drawer=core->getSkyDrawer();
+
 	Vec3d sunPos = ssystem->getSun()->getAltAzPosApparent(core);
 	// Compute the moon position in local coordinate
 	Vec3d moonPos = ssystem->getMoon()->getAltAzPosApparent(core);
@@ -237,9 +240,11 @@ void LandscapeMgr::update(double deltaTime)
 	atmosphere->computeColor(core->getJDE(), sunPos, moonPos,
 		ssystem->getMoon()->getPhaseAngle(ssystem->getEarth()->getHeliocentricEclipticPos()),
 		core, core->getCurrentLocation().latitude, core->getCurrentLocation().altitude,
-		15.f, 40.f);	// Temperature = 15c, relative humidity = 40%
+		15.f, 40.f, drawer->getExtinctionCoefficient());	// Temperature = 15c, relative humidity = 40%
 
-	core->getSkyDrawer()->reportLuminanceInFov(3.75+atmosphere->getAverageLuminance()*3.5, true);
+	// GZ Experimenting with better sunrise, add some factor here.
+	//core->getSkyDrawer()->reportLuminanceInFov(1.3*(3.75+atmosphere->getAverageLuminance()*3.5), true);
+	core->getSkyDrawer()->reportLuminanceInFov(atmLumFactor*(3.75+atmosphere->getAverageLuminance()*3.5), true);
 
 
 	// NOTE: Simple workaround for brightness of landscape when observing from the Sun.
@@ -311,7 +316,6 @@ void LandscapeMgr::update(double deltaTime)
 	}
 
 	// GZ: 2013-09-25 Take light pollution into account!
-	StelSkyDrawer* drawer=StelApp::getInstance().getCore()->getSkyDrawer();
 	float pollutionAddonBrightness=(drawer->getBortleScaleIndex()-1.0f)*0.025f; // 0..8, so we assume empirical linear brightening 0..0.02
 	float lunarAddonBrightness=0.f;
 	if (moonPos[2] > -0.1/1.5)
@@ -360,8 +364,22 @@ void LandscapeMgr::update(double deltaTime)
 
 void LandscapeMgr::draw(StelCore* core)
 {
+	StelSkyDrawer* drawer=core->getSkyDrawer();
+
 	// Draw the atmosphere
 	atmosphere->draw(core);
+
+	// GZ 2016-01: When we draw the atmosphere with a low sun, it is possible that the glaring red ball is overpainted and thus invisible.
+	// Attempt to draw the sun only here while not having drawn it by SolarSystem:
+	//if (atmosphere->getFlagShow())
+	if (drawer->getDrawSunAfterAtmosphere())
+	{
+		SolarSystem* ssys = GETSTELMODULE(SolarSystem);
+		PlanetP sun=ssys->getSun();
+		QFont font;
+		font.setPixelSize(StelApp::getInstance().getBaseFontSize());
+		sun->draw(core, 0, font);
+	}
 
 	// Draw the landscape
 	if (oldLandscape)
@@ -398,6 +416,8 @@ void LandscapeMgr::init()
 	setFlagAtmosphereAutoEnable(conf->value("viewing/flag_atmosphere_auto_enable",true).toBool());
 	setFlagIllumination(conf->value("landscape/flag_enable_illumination_layer", true).toBool());
 	setFlagLabels(conf->value("landscape/flag_enable_labels", true).toBool());
+	// GZ new
+	setAtmLumFactor(conf->value("landscape/atm_lum_factor", 1.3).toFloat());
 
 	bool ok =true;
 	setAtmosphereBortleLightPollution(conf->value("stars/init_bortle_scale",3).toInt(&ok));

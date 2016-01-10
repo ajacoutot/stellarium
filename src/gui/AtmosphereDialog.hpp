@@ -26,6 +26,8 @@
 #include <QObject>
 #include "StelDialog.hpp"
 #include "RefractionExtinction.hpp"
+#include "Skylight.hpp"
+
 
 class Ui_atmosphereDialogForm;
 
@@ -40,14 +42,35 @@ public:
 public slots:
         void retranslate();
 
+protected slots:
+	// various reset functions for the parametrizable atmosphere model.
+	void resetYPreet();
+	void resetxPreet();
+	void resetyPreet();
+	void resetYStel();
+	void resetxStel();
+	void resetyStel();
+
+	//void resetZYPreet();
+	void resetZxPreet();
+	void resetZyPreet();
+	//void resetZYStel();
+	void resetZxStel();
+	void resetZyStel();
+
+	void setIncrements(int idx);
+	void setTfromK(double k);
+
 protected:
         //! Initialize the dialog widgets and connect the signals/slots.
         virtual void createDialogContent();
-        Ui_atmosphereDialogForm *ui;
+
+	Ui_atmosphereDialogForm *ui;
 
 private:
-        Refraction *refraction;
-        Extinction *extinction;
+//        Refraction *refraction;
+//        Extinction *extinction;
+	Skylight *skylight;
 };
 
 #endif // _ATMOSPHEREDIALOG_HPP_

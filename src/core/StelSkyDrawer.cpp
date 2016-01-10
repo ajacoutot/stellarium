@@ -76,11 +76,11 @@ StelSkyDrawer::StelSkyDrawer(StelCore* acore) :
 	setMaxAdaptFov(conf->value("stars/mag_converter_max_fov",70.0).toFloat());
 	setMinAdaptFov(conf->value("stars/mag_converter_min_fov",0.1).toFloat());
 	setFlagLuminanceAdaptation(conf->value("viewing/use_luminance_adaptation",true).toBool());
-	setFlagStarMagnitudeLimit((conf->value("astro/flag_star_magnitude_limit", false).toBool()));
+	setFlagStarMagnitudeLimit(conf->value("astro/flag_star_magnitude_limit", false).toBool());
 	setCustomStarMagnitudeLimit(conf->value("astro/star_magnitude_limit", 6.5).toFloat());
-	setFlagPlanetMagnitudeLimit((conf->value("astro/flag_planet_magnitude_limit", false).toBool()));
+	setFlagPlanetMagnitudeLimit(conf->value("astro/flag_planet_magnitude_limit", false).toBool());
 	setCustomPlanetMagnitudeLimit(conf->value("astro/planet_magnitude_limit", 6.5).toFloat());
-	setFlagNebulaMagnitudeLimit((conf->value("astro/flag_nebula_magnitude_limit", false).toBool()));
+	setFlagNebulaMagnitudeLimit(conf->value("astro/flag_nebula_magnitude_limit", false).toBool());
 	setCustomNebulaMagnitudeLimit(conf->value("astro/nebula_magnitude_limit", 8.5).toFloat());
 
 	bool ok=true;
@@ -115,6 +115,12 @@ StelSkyDrawer::StelSkyDrawer(StelCore* acore) :
 	setAtmospherePressure(conf->value("landscape/pressure_mbar",1013.0).toDouble(&ok));
 	if (!ok)
 		setAtmospherePressure(1013.0);
+
+	// GZ four extras
+	setDrawSunAfterAtmosphere(conf->value("landscape/draw_sun_after_atmosphere",false).toBool());
+	setUseSunBlending(conf->value("landscape/use_sun_blending",false).toBool());
+	setFlagTfromK(conf->value("landscape/use_T_from_k",false).toBool());
+	setT(conf->value("landscape/turbidity",5.).toFloat());
 
 	// Initialize buffers for use by gl vertex array
 	nbPointSources = 0;
@@ -486,7 +492,7 @@ void StelSkyDrawer::drawSunCorona(StelPainter* painter, const Vec3f& v, float ra
 }
 
 // Terminate drawing of a 3D model, draw the halo
-void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, float illuminatedArea, float mag, const Vec3f& color)
+void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, float illuminatedArea, float mag, const Vec3f& color, const bool isSun)
 {
 	const float pixPerRad = painter->getProjector()->getPixelPerRadAtCenter();
 	// Assume a disk shape
@@ -494,7 +500,8 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 
 	bool noStarHalo = false;
 
-	if (mag<-15.f)
+	//if (mag<-15.f) // problem: sun may be dimmed by extinction...
+	if (isSun)
 	{
 		// Sun, halo size varies in function of the magnitude because sun as seen from pluto should look dimmer
 		// as the sun as seen from earth
@@ -505,7 +512,7 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 		float rmag = big3dModelHaloRadius*(mag+15.f)/-11.f;
 		float cmag = 1.f;
 		if (rmag<pixRadius*3.f+100.)
-			cmag = qMax(0.f, 1.f-(pixRadius*3.f+100-rmag)/100);
+			cmag = qMax(0.5f, 1.f-(pixRadius*3.f+100-rmag)/100); // was qMax(0, .), but this would remove the halo when sun is dim.
 		Vec3f win;
 		painter->getProjector()->project(v, win);
 		painter->setColor(color[0]*cmag, color[1]*cmag, color[2]*cmag);
@@ -550,8 +557,8 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 		float wl = findWorldLumForMag(mag, rcm.radius);
 		if (wl>0)
 		{
-			const float f = core->getMovementMgr()->getCurrentFov();
-			reportLuminanceInFov(qMin(700.f, qMin(wl/50, (60.f*60.f)/(f*f)*6.f)));
+			const float fov = core->getMovementMgr()->getCurrentFov();
+			reportLuminanceInFov(qMin(700.f, qMin(wl/50, (60.f*60.f)/(fov*fov)*6.f)));
 		}
 	}
 
