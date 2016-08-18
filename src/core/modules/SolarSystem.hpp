@@ -266,17 +266,24 @@ public slots:
 
 	//! Set the algorithm for computation of apparent magnitudes for planets in case observer on the Earth.
 	//! Possible values:
-	//! * Planesas (algorithm provided by Pere Planesas (Observatorio Astronomico Nacional))
+	//! * Planesas (algorithm provided by Pere Planesas (Observatorio Astronomico Nacional)).
+	//!            This is actually straight from the Explanatory Supplement to the Astronomical Ephemeris, 1992.
 	//! * Mueller (G. Mueller, based on visual observations 1877-91. [Expl.Suppl.1961])
 	//! * Harris (Astronomical Almanac 1984 and later. These give V (instrumental) magnitudes)
 	//! Details:
-	//! J. Meeus "Astronomical Algorithms" (2nd ed., with corrections as of August 10, 2009) p.283-286.
+	//! J. Meeus "Astronomical Algorithms" (2nd ed. 1998, with corrections as of August 10, 2009) p.283-286.
 	//! O. Montenbruck, T. Pfleger "Astronomy on the Personal Computer" (4th ed.) p.143-145.
 	//! Daniel L. Harris "Photometry and Colorimetry of Planets and Satellites" http://adsabs.harvard.edu/abs/1961plsa.book..272H
+	//! It is interesting to note that Meeus in his discussion of "Harris" states that Harris did not give new values.
+	//! The book indeed mentions a few values for the inner planets citing Danjon, but different from those then listed by Meeus.
+	//! Therefore it must be assumed that the "Harris" values are misnomed, and are the least certain set.
+	//! They should be renamed to be: Expl_Sup_1992/Mueller_1893/Astr_Alm_1884
+	//!
 	//! Hint: Default option in config.ini: astro/apparent_magnitude_algorithm = Harris
+	//  TODO: REPLACE default by Expl_Sup_1992 (previously called "Planesas")
 	//! @param algorithm the case in-sensitive algorithm name
 	//! @note: The structure of algorithms is almost identical, just the numbers are different! You should activate
-	//! Mueller's algorithm for simulate the eye's impression. (Esp. Venus!)
+	//! Mueller's algorithm to better simulate the eye's impression. (Esp. Venus!)
 	void setApparentMagnitudeAlgorithmOnEarth(QString algorithm);
 
 	//! Get the algorithm used for computation of apparent magnitudes for planets in case  observer on the Earth

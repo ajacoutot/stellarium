@@ -48,7 +48,7 @@ double range_radians (double r)
 
 /* Calculate the mean sidereal time at the meridian of Greenwich (GMST) of a given date.
  * returns mean sidereal time (degrees).
- * Formula 11.1, 11.4 pg 83
+ * Meeus, Astr. Algorithms, Formula 11.1, 11.4 pg 83
  * MAKE SURE argument JD is UT, not TT!
  * GZfix for V0.14: Replace by expression (43) given in:
  * N. Capitaine, P.T.Wallace, J. Chapront: Expressions for IAU 2000 precession quantities.

@@ -228,6 +228,8 @@ CometOrbit::CometOrbit(double pericenterDistance,
 	  updateTails(true),
 	  orbitGood(orbitGoodDays)
 {
+	// GZ MAKE SURE THIS IS ALWAYS 0/0/0.
+	qDebug() << "parentRotObliquity" << parentRotObliquity << "parentRotAscendingnode" << parentRotAscendingnode << "parentRotJ2000Longitude" << parentRotJ2000Longitude;
 	rdot.set(0.0, 0.0, 0.0);
 	const double c_obl = cos(parentRotObliquity);
 	const double s_obl = sin(parentRotObliquity);
@@ -530,7 +532,8 @@ void EllipticalOrbit::sample(double, double, int nSamples, OrbitSampleProc& proc
 		proc.sample(positionAtE(dE * i));
 }
 
-
+/*
+ * Stuff found unused and deactivated pre-0.15
 Vec3d CachingOrbit::positionAtTime(double JDE) const
 {
 	if (JDE != lastTime)
@@ -548,3 +551,4 @@ void CachingOrbit::sample(double start, double t, int nSamples, OrbitSampleProc&
 	for (int i = 0; i < nSamples; i++)
 		proc.sample(positionAtTime(start + dt * i));
 }
+*/

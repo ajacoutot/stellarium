@@ -110,7 +110,7 @@ private:
 	Vec3d rdot;      //! GZ: velocity vector. Caches velocity from last position computation, [AU/d]
 	double rotateToVsop87[9]; //! Rotation matrix
 	bool updateTails; //! flag to signal that tails must be recomputed.
-	const double orbitGood; //! orb. elements are only valid for this time [days]. Don't draw the object outside.
+	const double orbitGood; //! orb. elements are only valid for this time from perihel [days]. Don't draw the object outside.
 };
 
 
@@ -121,7 +121,8 @@ class OrbitSampleProc
 	virtual void sample(const Vec3d&) = 0;
 };
 
-
+/*
+ * Stuff found unused and deactivated pre-0.15
 
 // Custom orbit classes should be derived from CachingOrbit.  The custom
 // orbits can be expensive to compute, with more than 50 periodic terms.
@@ -147,6 +148,6 @@ private:
 	mutable double lastTime;
 };
 
-
+*/
 
 #endif // _ORBIT_HPP_

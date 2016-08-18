@@ -334,10 +334,11 @@ void Comet::update(int deltaTime)
 	{
 		lastJDEtail=dateJDE;
 
-		// The CometOrbit is in fact available in userDataPtr!
-		CometOrbit* orbit=(CometOrbit*)userDataPtr;
-		Q_ASSERT(orbit);
-		if (!orbit->objectDateValid(dateJDE)) return; // out of useful date range. This should allow having hundreds of comet elements.
+		// GZ 2016: has been given above. Remove those duplicate lines?
+//		// The CometOrbit is in fact available in userDataPtr!
+//		CometOrbit* orbit=(CometOrbit*)userDataPtr;
+//		Q_ASSERT(orbit);
+//		if (!orbit->objectDateValid(dateJDE)) return; // out of useful date range. This should allow having hundreds of comet elements.
 
 		if (orbit->getUpdateTails()){
 			// Compute lengths and orientations from orbit object, but only if required.

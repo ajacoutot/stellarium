@@ -33,6 +33,11 @@
 // The last variable is the userData pointer.
 typedef void (*posFuncType)(double, double*, void*);
 
+// GZ2016: new axis functions for external computation of axis orientations for selected objects.
+// The last variable is a pointer to the Planet object.
+typedef void (*axisFuncType)(double, double*, void*);
+
+
 typedef void (OsculatingFunctType)(double jde0,double jde,double xyz[3]);
 
 // epoch J2000: 12 UT on 1 Jan 2000
@@ -45,17 +50,53 @@ class StelTranslator;
 class QOpenGLShaderProgram;
 
 // Class used to store rotational elements, i.e. axis orientation for the planetary body.
+// Data are read from ssystem.ini in SolarSystem.cpp::loadPlanets().
+//
+// GZ2016-01: This seems to be an outdated model.
+// TODO: For historical reasons, some of the values are given in hours, others in earth days, making life harder. Most moons have coupled rotation, they should be auto-converted from
+//       Finding a consistent scheme would be helpful. Also, IAU has planet axes in ICRF, while Stellarium has them coded in VSOP87.
+//       Except if rot_pole... values are given, then they are ICRF and transformed on the fly to VSOP87, stored in here.
+//
+// IAU standards like the Report of the IAU Working Group on Cartographic Coordinates and Rotational elements 2009 (DOI:10.1007/s10569-010-9320-4)
+// has axes given w.r.t. J2000 ICRF.
+// Before 0.15, if the planet elements in ssystem.ini had elements "rot_pole_ra" and "rot_pole_de" given, the poles were transformed to
+// ecliptically-based directions (VSOP87) obliquity/ascendingNode. But these were only ra/de_J2000 poles. Some axes have precession, which need to be modelled/updated.
+// The new way (0.15): We still use the previous elements obliquity and ascendingNode in Planet::computeTransMatrix(.,.)
+// and Planet::getSiderealTime(), but can update them periodically from:
+// ra=ra0+T*ra1
+// de=de0+T*de1         ( --> obliquity, ascendingNode)
+// rot_rotation_offset [degrees]     =W0
+// rot_periode  [hours] =  computed from rot_pole_W1[deg/day] if that exists.  360 [deg] / _rot_ [hours] --> 360 * _rot_ / 24 [deg/hours]
+// In addition, the objects with more complicated element behaviour must be updated with special functions in those two functions.
+// New keys in ssystem.ini, their storage in RotationElements, and their equivalents in the IAU report:
+// rot_pole_ra  [degrees]     re.ra0      constant term for alpha_0
+// rot_pole_de  [degrees]     re.ra1      constant term for delta_0
+// rot_pole_ra1 [degrees/cy]  re.de0      T factor for alpha_0
+// rot_pole_de1 [degrees/cy]  re.de1      T factor for  delta_0
+// rot_pole_W0  [degrees]     re.offset   constant term fo W. Will be stored in re.offset, and is signal for using the IAU model (causes setting re.useICRF=true)
+// rot_pole_W1  [degrees/day] re.period   d factor for W      Will be converted to rot_periode=360*24/W1.
+
 class RotationElements
 {
 public:
-	RotationElements(void) : period(1.), offset(0.), epoch(J2000), obliquity(0.), ascendingNode(0.), precessionRate(0.), siderealPeriod(0.) {}
-	float period;          // (sidereal) rotation period [earth days]
-	float offset;          // rotation at epoch  [degrees]
+	RotationElements(void) : period(1.), offset(0.), epoch(J2000), obliquity(0.), ascendingNode(0.), //precessionRate(0.),
+		siderealPeriod(0.),
+		useICRF(false), ra0(0.), ra1(0.), de0(0.), de1(0.) {}
+	float period;          // (sidereal) rotation period [earth days]     If useICRF, this is from the time term of W.
+	float offset;          // rotation at epoch  [degrees]                If useICRF, this is the constant term of W
 	double epoch;          // JDE (JD TT) of epoch for these elements
 	float obliquity;       // tilt of rotation axis w.r.t. ecliptic [radians]
 	float ascendingNode;   // long. of ascending node of equator on the ecliptic [radians]
-	float precessionRate;  // rate of precession of rotation axis in [rads/JulianCentury(36525d)]
+//	float precessionRate;  // rate of precession of rotation axis in [rads/JulianCentury(36525d)] [ NO LONGER USED WITH 0.14 (was used for Earth only, and that was too simple.) ]
 	double siderealPeriod; // sidereal period (Planet year in earth days) [earth days]
+	// GZ for 0.15: I propose changes here: The 4 new entries after the switch are enough for many objects. Else, design special_functions.
+	bool useICRF;          // Use values w.r.t. ICRF (should ultimately be true for all objects!) This can be set when rot_pole_ra is given. Updating the axis is required if ra1<>0
+	double ra0;            // [rad] RA_0 right ascension of north pole. ssystem.ini: rot_pole_ra    /180*M_PI
+	double ra1;            // [rad/century] rate of change in axis ra   ssystem.ini: rot_pole_ra1   /180*M_PI
+	double de0;            // [rad] DE_0 declination of north pole      ssystem.ini: rot_pole_de    /180*M_PI
+	double de1;            // [rad/century] rate of change in axis de   ssystem.ini: rot_pole_de1   /180*M_PI
+//	double W0;             // [rad] mean longitude at epoch.
+//	double W1;             // [rad/d] mean longitude motion.
 };
 
 // Class to manage rings for planets like saturn
@@ -91,18 +132,18 @@ public:
 		isComet,                  // ssystem.ini: type="comet"
 		isDwarfPlanet,		  // ssystem.ini: type="dwarf planet"
 		isCubewano,		  // ssystem.ini: type="cubewano"
-		isSDO,			  // ssystem.ini: type="sdo"
-		isOCO,			  // ssystem.ini: type="oco"
+		isSDO,			  // ssystem.ini: type="scattered disc object"
+		isOCO,			  // ssystem.ini: type="Oort cloud object"
 		isUNDEFINED               // ssystem.ini: type=<anything else>
 	};
 
 	enum ApparentMagnitudeAlgorithm
 	{
-		Planesas,	// Algorithm provided by Pere Planesas (Observatorio Astronomico Nacional)
-		Mueller,	// G. Mueller, based on visual observations 1877-91. [Expl.Suppl.1961]
-		Harris,		// Astronomical Almanac 1984 and later. These give V (instrumental) magnitudes (D.L. Harris)
+		Expl_Sup_1992,	// Algorithm provided by Pere Planesas (Observatorio Astronomico Nacional) (Was called "Planesas")
+		Mueller_1893,	// G. Mueller, based on visual observations 1877-91. [Expl.Suppl.1961]
+		Astr_Alm_1984,	// Astronomical Almanac 1984 and later. These give V (instrumental) magnitudes (allegedly from D.L. Harris, but this is wrong!)
 		UndefinedAlgorithm,
-		Generic		// Visual magnitude based on phase angle and albedo
+		Generic		// Visual magnitude based on phase angle and albedo. The formula for this is totally unknown!
 	};
 
 	Planet(const QString& englishName,
@@ -200,6 +241,30 @@ public:
 	void setRotEquatorialToVsop87(const Mat4d &m);
 
 	const RotationElements &getRotationElements(void) const {return re;}
+	// Set the -o-r-b-i-t-a-l- ROTATIONAL elements
+	// _period: duration of sidereal rotation [Julian days]
+	// _offset: [angle at _epoch. ]
+	// _epoch: [JDE]
+	// _obliquity [rad]
+	// _ascendingNode of equator on ecliptic[rad]
+	// ra_pole=_ra0 + T*_ra1. ra_pole and de_pole must be computed more than for initialisation for J2000
+	// de_pole=_de0 + T*_de1
+	// _precessionRate [rad/JulCt] (was only given for earth, and is no longer used!)
+	// _siderealPeriod [earth days] orbital duration. THIS DOES NOT BELONG HERE!
+	void setRotationElements(const float _period, const float _offset, const double _epoch,
+				 const float _obliquity, const float _ascendingNode,
+				 const double _ra0,
+				 const double _ra1,
+				 const double _de0,
+				 const double _de1,
+				 //float _precessionRate,
+				 const double _siderealPeriod);
+	double getRotAscendingnode(void) const {return re.ascendingNode;}
+	// return angle between axis and normal of ecliptic plane (or, for a moon, equatorial/reference plane defined by parent).
+	// For Earth, this is the angle between axis and normal to current ecliptic of date, i.e. the ecliptic obliquity of date JDE.
+	// TODO: decide if this is always angle between axis and J2000 ecliptic, or should be axis//current ecliptic!
+	double getRotObliquity(double JDE) const;
+
 
 	// Compute the position in the parent Planet coordinate system
 	void computePositionWithoutOrbits(const double dateJDE);
@@ -217,15 +282,6 @@ public:
 	double getSpheroidAngularSize(const StelCore* core) const;
 	// Get the planet phase for an observer at pos obsPos in heliocentric coordinates (in AU)
 	float getPhase(const Vec3d& obsPos) const;
-
-	// Set the orbital elements
-	void setRotationElements(float _period, float _offset, double _epoch,
-				 float _obliquity, float _ascendingNode,
-				 float _precessionRate, double _siderealPeriod);
-	double getRotAscendingnode(void) const {return re.ascendingNode;}
-	// return angle between axis and normal of ecliptic plane (or, for a moon, equatorial/reference plane defined by parent).
-	// TODO: decide if this is always angle between axis and J2000 ecliptic, or should be axis//current ecliptic!
-	double getRotObliquity(double JDE) const;
 
 	//! Get the Planet position in the parent Planet ecliptic coordinate in AU
 	Vec3d getEclipticPos() const;
@@ -322,7 +378,7 @@ protected:
 	RotationElements re;             // Rotation param
 	double radius;                   // Planet radius in AU
 	double oneMinusOblateness;       // (polar radius)/(equatorial radius)
-	Vec3d eclipticPos;               // Position in AU in the rectangular ecliptic coordinate system
+	Vec3d eclipticPos;               // Position in AU in the rectangular ecliptic coordinate system, (GZ2016: presumably equinox J2000)
 					 // centered on the parent Planet
 	Vec3d screenPos;                 // Used to store temporarily the 2D position on screen
 	Vec3d previousScreenPos;         // The position of this planet in the previous frame.
@@ -331,8 +387,10 @@ protected:
 	float albedo;                    // Planet albedo. Used for magnitude computation (but formula dubious!)
 	Mat4d rotLocalToParent;          // GZ2015: was undocumented.
 					 // Apparently this is the axis orientation with respect to the parent body. For planets, this is axis orientation w.r.t. VSOP87A/J2000 ecliptical system.
-	float axisRotation;              // Rotation angle of the Planet on its axis.
+	float axisRotation;              // Rotation angle of the Planet on its axis, degrees.
 					 // For Earth, this should be Greenwich Mean Sidereal Time GMST.
+					 // For V0.15+, and for planets computed after the IAU2009 paper this is angle W (rotDeg),
+					 // i.e. angle between ascending node of body equator w.r.t. ICRF equator and its prime meridian.
 	StelTextureSP texMap;            // Planet map texture
 	StelTextureSP normalMap;         // Planet normal map texture
 

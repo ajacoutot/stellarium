@@ -498,13 +498,14 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			}
 		}
 
-		const QString funcName = pd.value(secname+"/coord_func").toString();
+		const QString coordFuncName = pd.value(secname+"/coord_func").toString();
+		const QString axisFuncName = pd.value(secname+"/axis_func").toString();
 		posFuncType posfunc=NULL;
 		void* userDataPtr=NULL;
 		OsculatingFunctType *osculatingFunc = 0;
 		bool closeOrbit = pd.value(secname+"/closeOrbit", true).toBool();
 
-		if (funcName=="ell_orbit")
+		if (coordFuncName=="ell_orbit")
 		{
 			// Read the orbital elements
 			const double epoch = pd.value(secname+"/orbit_Epoch",J2000).toDouble();
@@ -607,7 +608,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			userDataPtr = orb;
 			posfunc = &ellipticalOrbitPosFunc;
 		}
-		else if (funcName=="comet_orbit")
+		else if (coordFuncName=="comet_orbit")
 		{
 			// Read the orbital elements
 			// orbit_PericenterDistance,orbit_SemiMajorAxis: given in AU
@@ -684,6 +685,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			const double parent_rot_asc_node = parent->getParent() ? parent->getRotAscendingnode() : 0.0;
 			double parent_rot_j2000_longitude = 0.0;
 						if (parent->getParent()) {
+							qDebug() << "Really? A comet orbiting " << pd.value("parent") << "has a greatparent?";
 							const double c_obl = cos(parentRotObliquity);
 							const double s_obl = sin(parentRotObliquity);
 							const double c_nod = cos(parent_rot_asc_node);
@@ -713,118 +715,121 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			posfunc = &cometOrbitPosFunc;
 		}
 
-		if (funcName=="sun_special")
+		if (coordFuncName=="sun_special")
 			posfunc = &get_sun_helio_coordsv;
 
-		if (funcName=="mercury_special") {
+		if (coordFuncName=="mercury_special") {
 			posfunc = &get_mercury_helio_coordsv;
 			osculatingFunc = &get_mercury_helio_osculating_coords;
 		}
 
-		if (funcName=="venus_special") {
+		if (coordFuncName=="venus_special") {
 			posfunc = &get_venus_helio_coordsv;
 			osculatingFunc = &get_venus_helio_osculating_coords;
 		}
 
-		if (funcName=="earth_special") {
+		if (coordFuncName=="earth_special") {
 			posfunc = &get_earth_helio_coordsv;
 			osculatingFunc = &get_earth_helio_osculating_coords;
 		}
 
-		if (funcName=="lunar_special")
+		if (coordFuncName=="lunar_special")
 			posfunc = &get_lunar_parent_coordsv;
 
-		if (funcName=="mars_special") {
+		if (coordFuncName=="mars_special") {
 			posfunc = &get_mars_helio_coordsv;
 			osculatingFunc = &get_mars_helio_osculating_coords;
 		}
 
-		if (funcName=="phobos_special")
+		if (coordFuncName=="phobos_special")
 			posfunc = posFuncType(get_phobos_parent_coordsv);
 
-		if (funcName=="deimos_special")
+		if (coordFuncName=="deimos_special")
 			posfunc = &get_deimos_parent_coordsv;
 
-		if (funcName=="jupiter_special") {
+		if (coordFuncName=="jupiter_special") {
 			posfunc = &get_jupiter_helio_coordsv;
 			osculatingFunc = &get_jupiter_helio_osculating_coords;
 		}
 
-		if (funcName=="europa_special")
+		if (coordFuncName=="europa_special")
 			posfunc = &get_europa_parent_coordsv;
 
-		if (funcName=="calisto_special")
+		if (coordFuncName=="calisto_special")
 			posfunc = &get_callisto_parent_coordsv;
 
-		if (funcName=="io_special")
+		if (coordFuncName=="io_special")
 			posfunc = &get_io_parent_coordsv;
 
-		if (funcName=="ganymede_special")
+		if (coordFuncName=="ganymede_special")
 			posfunc = &get_ganymede_parent_coordsv;
 
-		if (funcName=="saturn_special") {
+		if (coordFuncName=="saturn_special") {
 			posfunc = &get_saturn_helio_coordsv;
 			osculatingFunc = &get_saturn_helio_osculating_coords;
 		}
 
-		if (funcName=="mimas_special")
+		if (coordFuncName=="mimas_special")
 			posfunc = &get_mimas_parent_coordsv;
 
-		if (funcName=="enceladus_special")
+		if (coordFuncName=="enceladus_special")
 			posfunc = &get_enceladus_parent_coordsv;
 
-		if (funcName=="tethys_special")
+		if (coordFuncName=="tethys_special")
 			posfunc = &get_tethys_parent_coordsv;
 
-		if (funcName=="dione_special")
+		if (coordFuncName=="dione_special")
 			posfunc = &get_dione_parent_coordsv;
 
-		if (funcName=="rhea_special")
+		if (coordFuncName=="rhea_special")
 			posfunc = &get_rhea_parent_coordsv;
 
-		if (funcName=="titan_special")
+		if (coordFuncName=="titan_special")
 			posfunc = &get_titan_parent_coordsv;
 
-		if (funcName=="iapetus_special")
+		if (coordFuncName=="iapetus_special")
 			posfunc = &get_iapetus_parent_coordsv;
 
-		if (funcName=="hyperion_special")
+		if (coordFuncName=="hyperion_special")
 			posfunc = &get_hyperion_parent_coordsv;
 
-		if (funcName=="uranus_special") {
+		if (coordFuncName=="uranus_special") {
 			posfunc = &get_uranus_helio_coordsv;
 			osculatingFunc = &get_uranus_helio_osculating_coords;
 		}
 
-		if (funcName=="miranda_special")
+		if (coordFuncName=="miranda_special")
 			posfunc = &get_miranda_parent_coordsv;
 
-		if (funcName=="ariel_special")
+		if (coordFuncName=="ariel_special")
 			posfunc = &get_ariel_parent_coordsv;
 
-		if (funcName=="umbriel_special")
+		if (coordFuncName=="umbriel_special")
 			posfunc = &get_umbriel_parent_coordsv;
 
-		if (funcName=="titania_special")
+		if (coordFuncName=="titania_special")
 			posfunc = &get_titania_parent_coordsv;
 
-		if (funcName=="oberon_special")
+		if (coordFuncName=="oberon_special")
 			posfunc = &get_oberon_parent_coordsv;
 
-		if (funcName=="neptune_special") {
+		if (coordFuncName=="neptune_special") {
 			posfunc = posFuncType(get_neptune_helio_coordsv);
 			osculatingFunc = &get_neptune_helio_osculating_coords;
 		}
 
-		if (funcName=="pluto_special")
+		if (coordFuncName=="pluto_special")
 			posfunc = &get_pluto_helio_coordsv;
 
 
 		if (posfunc==NULL)
 		{
-			qWarning() << "ERROR : can't find posfunc " << funcName << " for " << englishName;
+			qWarning() << "ERROR : can't find posfunc " << coordFuncName << " for " << englishName;
 			exit(-1);
 		}
+//		if (axisFuncName=="mercury_special"){
+//			//axisFunc =
+//		}
 
 		// Create the Solar System body and add it to the list
 		QString type = pd.value(secname+"/type").toString();		
@@ -966,11 +971,21 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		// Use more common planet North pole data if available
 		// NB: N pole as defined by IAU (NOT right hand rotation rule)
 		// NB: J2000 epoch
-		double J2000NPoleRA = pd.value(secname+"/rot_pole_ra", 0.).toDouble()*M_PI/180.;
-		double J2000NPoleDE = pd.value(secname+"/rot_pole_de", 0.).toDouble()*M_PI/180.;
+		// GZ TODO for 0.15: Make this more flexible with changing axes. and have special functions for more complicated axes.
+		double J2000NPoleRA  = pd.value(secname+"/rot_pole_ra", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleRA1 = pd.value(secname+"/rot_pole_ra1", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleDE  = pd.value(secname+"/rot_pole_de", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleDE1 = pd.value(secname+"/rot_pole_de1", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleW0  = pd.value(secname+"/rot_pole_W0", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleW1  = pd.value(secname+"/rot_pole_W1", 0.).toDouble()*M_PI/180.;
+
+		double rotPeriod=pd.value(secname+"/rot_periode", pd.value(secname+"/orbit_Period", 24.).toDouble()).toDouble()/24.;
+		double rotOffset=pd.value(secname+"/rot_rotation_offset",0.).toDouble();
 
 		if(J2000NPoleRA || J2000NPoleDE)
 		{
+			// Old solution: Make this once for J2000.
+			// New in 0.15: Repeat this block in planet::update() if required.
 			Vec3d J2000NPole;
 			StelUtils::spheToRect(J2000NPoleRA,J2000NPoleDE,J2000NPole);
 
@@ -984,16 +999,32 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 
 			// qDebug() << "\tCalculated rotational obliquity: " << rotObliquity*180./M_PI << endl;
 			// qDebug() << "\tCalculated rotational ascending node: " << rotAscNode*180./M_PI << endl;
+
+			if (J2000NPoleW0 >0)
+			{
+				// this is just another name for offset...
+				rotOffset=J2000NPoleW0;
+			}
+			if (J2000NPoleW1 >0)
+			{
+				// this is just another expression for rotational speed.
+				rotPeriod=360.0/J2000NPoleW1;
+				// qDebug() << "\t" << englishName << ": Calculated rotational speed: " << rotPeriod*180./M_PI << endl;
+			}
 		}
 
 		p->setRotationElements(
-			pd.value(secname+"/rot_periode", pd.value(secname+"/orbit_Period", 24.).toDouble()).toDouble()/24.,
-			pd.value(secname+"/rot_rotation_offset",0.).toDouble(),
+			rotPeriod,
+			rotOffset,
 			pd.value(secname+"/rot_epoch", J2000).toDouble(),
 			rotObliquity,
 			rotAscNode,
-			pd.value(secname+"/rot_precession_rate",0.).toDouble()*M_PI/(180*36525),
-			pd.value(secname+"/orbit_visualization_period",0.).toDouble());
+			//pd.value(secname+"/rot_precession_rate",0.).toDouble()*M_PI/(180*36525),
+			J2000NPoleRA,
+			J2000NPoleRA1,
+			J2000NPoleDE,
+			J2000NPoleDE1,
+			pd.value(secname+"/orbit_visualization_period",0.).toDouble()); // TODO; Get rid of the last parameter!
 
 
 		if (pd.value(secname+"/rings", 0).toBool()) {
