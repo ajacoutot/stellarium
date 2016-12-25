@@ -47,17 +47,30 @@ QString getApplicationName()
 //! Return the version of stellarium, i.e. "0.9.0"
 QString getApplicationVersion()
 {
-#ifdef STELLARIUM_RELEASE_BUILD
-	return QString(PACKAGE_VERSION);
-#else
-	#ifdef BZR_REVISION
-	return QString(PACKAGE_VERSION)+" (BZR r"+BZR_REVISION+")";
-	#elif defined(STELLARIUM_VERSION)
+#if defined(STELLARIUM_VERSION)
 	return QString(STELLARIUM_VERSION);
-	#else
-	return QString(PACKAGE_VERSION)+QChar(0x03B2);
-	#endif
+#elif defined(BZR_REVISION)
+	return QString("%1.%2 [%3]").arg(PACKAGE_VERSION).arg(BZR_REVISION).arg(BZR_BRANCH);
+#else
+	return QString(PACKAGE_VERSION);
 #endif
+}
+
+QString getUserAgentString()
+{
+	// Get info about operating system
+	QString platform = StelUtils::getOperatingSystemInfo();
+	if (platform.contains("Linux"))
+		platform = "Linux";
+	if (platform.contains("FreeBSD"))
+		platform = "FreeBSD";
+	if (platform.contains("NetBSD"))
+		platform = "NetBSD";
+	if (platform.contains("OpenBSD"))
+		platform = "OpenBSD";
+
+	// Set user agent as "Stellarium/$version$ ($platform$)"
+	return QString("Stellarium/%1 (%2)").arg(StelUtils::getApplicationVersion()).arg(platform);
 }
 
 QString getOperatingSystemInfo()
@@ -686,7 +699,6 @@ QDateTime jdToQDateTime(const double& jd)
 	return result;
 }
 
-
 void getDateFromJulianDay(const double jd, int *yy, int *mm, int *dd)
 {
 	/*
@@ -750,21 +762,26 @@ void getDateFromJulianDay(const double jd, int *yy, int *mm, int *dd)
 	}
 }
 
-void getTimeFromJulianDay(const double julianDay, int *hour, int *minute, int *second)
+void getTimeFromJulianDay(const double julianDay, int *hour, int *minute, int *second, int *millis)
 {
 	double frac = julianDay - (floor(julianDay));
-	int s = (int)floor((frac * 24.0 * 60.0 * 60.0) + 0.0001);  // add constant to fix floating-point truncation error
+	double secs = frac * 24.0 * 60.0 * 60.0 + 0.0001; // add constant to fix floating-point truncation error
+	int s = (int)floor(secs);
 
 	*hour = ((s / (60 * 60))+12)%24;
 	*minute = (s/(60))%60;
 	*second = s % 60;
+	if(millis)
+	{
+		*millis = (int)floor((secs - floor(secs)) * 1000.0);
+	}
 }
 
-QString julianDayToISO8601String(const double jd)
+QString julianDayToISO8601String(const double jd, bool addMS)
 {
-	int year, month, day, hour, minute, second;
+	int year, month, day, hour, minute, second,millis;
 	getDateFromJulianDay(jd, &year, &month, &day);
-	getTimeFromJulianDay(jd, &hour, &minute, &second);
+	getTimeFromJulianDay(jd, &hour, &minute, &second, addMS ? &millis : NULL );
 
 	QString res = QString("%1-%2-%3T%4:%5:%6")
 				 .arg((year >= 0 ? year : -1* year),4,10,QLatin1Char('0'))
@@ -773,6 +790,11 @@ QString julianDayToISO8601String(const double jd)
 				 .arg(hour,2,10,QLatin1Char('0'))
 				 .arg(minute,2,10,QLatin1Char('0'))
 				 .arg(second,2,10,QLatin1Char('0'));
+
+	if(addMS)
+	{
+		res = res.append(".%1").arg(millis,3,10,QLatin1Char('0'));
+	}
 	if (year < 0)
 	{
 		res.prepend("-");
@@ -937,35 +959,6 @@ QTime jdFractionToQTime(const double jd)
 	return QTime::fromString(QString("%1.%2").arg(hours).arg(mins), "h.m");
 }
 
-// Use Qt's own sense of time and offset instead of platform specific code.
-float getGMTShiftFromQT(const double JD)
-{
-	int year, month, day, hour, minute, second;
-	getDateFromJulianDay(JD, &year, &month, &day);
-	getTimeFromJulianDay(JD, &hour, &minute, &second);
-	// as analogous to second statement in getJDFromDate, nkerr
-	if ( year <= 0 )
-	{
-		year = year - 1;
-	}
-	//getTime/DateFromJulianDay returns UTC time, not local time
-	QDateTime universal(QDate(year, month, day), QTime(hour, minute, second), Qt::UTC);
-	if (! universal.isValid())
-	{
-		//qWarning() << "JD " << QString("%1").arg(JD) << " out of bounds of QT help with GMT shift, using current datetime";
-		// Assumes the GMT shift was always the same before year -4710
-		universal = QDateTime(QDate(-4710, month, day), QTime(hour, minute, second), Qt::UTC);
-	}
-	QDateTime local = universal.toLocalTime();
-	//Both timezones should be interpreted as UTC because secsTo() converts both
-	//times to UTC if their zones have different daylight saving time rules.
-	local.setTimeSpec(Qt::UTC);
-
-	int shiftInSeconds = universal.secsTo(local);
-	float shiftInHours = shiftInSeconds / 3600.0f;
-	return shiftInHours;
-}
-
 // UTC !
 bool getJDFromDate(double* newjd, const int y, const int m, const int d, const int h, const int min, const int s)
 {
@@ -1121,7 +1114,7 @@ int numberOfDaysInMonthInYear(const int month, const int year)
 //! normalize into an actual year/month/day.  values can be positive, 0,
 //! or negative.  start assessing from seconds to larger increments.
 bool changeDateTimeForRollover(int oy, int om, int od, int oh, int omin, int os,
-				int* ry, int* rm, int* rd, int* rh, int* rmin, int* rs)
+			       int* ry, int* rm, int* rd, int* rh, int* rmin, int* rs)
 {
 	bool change = false;
 
@@ -1936,15 +1929,19 @@ double getDeltaTByKhalidSultanaZaidi(const double jDay)
 	return (((a4*u + a3)*u + a2)*u + a1)*u + a0;
 }
 
-double getMoonSecularAcceleration(const double jDay, const double nd)
+double getMoonSecularAcceleration(const double jDay, const double nd, const bool useDE43x)
 {
 	int year, month, day;
 	getDateFromJulianDay(jDay, &year, &month, &day);
 
 	double t = (getDecYear(year, month, day)-1955.5)/100.0;
 	// n.dot for secular acceleration of the Moon in ELP2000-82B
-	// have value -23.8946 "/cy/cy
-	return -0.91072 * (-23.8946 + qAbs(nd))*t*t;
+	// have value -23.8946 "/cy/cy (or -25.8 for DE43x usage)
+	double ephND = -23.8946;
+	if (useDE43x)
+		ephND = -25.8;
+
+	return -0.91072 * (ephND + qAbs(nd))*t*t;
 }
 
 double getDeltaTStandardError(const double jDay)
@@ -2268,6 +2265,24 @@ float *ComputeCosSinRhoZone(const float dRho, const int segments, const float mi
 double getDecYear(const int year, const int month, const int day)
 {
 	return year+((month-1)*30.5+day/31.*30.5)/366;
+}
+
+int compareVersions(const QString v1, const QString v2)
+{
+	// result (-1: v1<v2; 0: v1==v2; 1: v1>v2)
+	int result = 0;
+	QStringList v1s = v1.split(".");
+	QStringList v2s = v2.split(".");
+	int ver1 = v1s.at(0).toInt()*1000 + v1s.at(1).toInt()*100 + v1s.at(2).toInt();
+	int ver2 = v2s.at(0).toInt()*1000 + v2s.at(1).toInt()*100 + v2s.at(2).toInt();
+	if (ver1<ver2)
+		result = -1;
+	else if (ver1 == ver2)
+		result = 0;
+	else if (ver1 > ver2)
+		result = 1;
+
+	return result;
 }
 
 //! Uncompress gzip or zlib compressed data.

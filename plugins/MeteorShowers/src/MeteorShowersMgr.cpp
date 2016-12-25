@@ -33,7 +33,6 @@
 #include "StelGui.hpp"
 #include "StelModuleMgr.hpp"
 #include "StelProgressController.hpp"
-#include "StelTextureMgr.hpp"
 #include "StelUtils.hpp"
 #include "SporadicMeteorMgr.hpp"
 
@@ -59,7 +58,6 @@ MeteorShowersMgr::MeteorShowersMgr()
 	, m_progressBar(NULL)
 {
 	setObjectName("MeteorShowers");
-	qsrand(QDateTime::currentMSecsSinceEpoch());
 }
 
 MeteorShowersMgr::~MeteorShowersMgr()
@@ -269,12 +267,6 @@ void MeteorShowersMgr::update(double deltaTime)
 		return;
 	}
 
-	// is paused?
-	// freeze meteors at the current position
-	if (!StelApp::getInstance().getCore()->getTimeRate()) {
-		return;
-	}
-
 	m_meteorShowers->update(deltaTime);
 }
 
@@ -450,23 +442,20 @@ void MeteorShowersMgr::setShowSearchButton(const bool& show)
 
 void MeteorShowersMgr::setColorARG(const Vec3f& rgb)
 {
-	m_colorARG = rgb;
-	QString rgbStr = QString("%1,%2,%3").arg(rgb[0]).arg(rgb[1]).arg(rgb[2]);
-	m_conf->setValue(MS_CONFIG_PREFIX + "/colorARG", rgbStr);
+	m_colorARG = rgb;	
+	m_conf->setValue(MS_CONFIG_PREFIX + "/colorARG", StelUtils::vec3fToStr(rgb));
 }
 
 void MeteorShowersMgr::setColorARC(const Vec3f& rgb)
 {
-	m_colorARC = rgb;
-	QString rgbStr = QString("%1,%2,%3").arg(rgb[0]).arg(rgb[1]).arg(rgb[2]);
-	m_conf->setValue(MS_CONFIG_PREFIX + "/colorARC", rgbStr);
+	m_colorARC = rgb;	
+	m_conf->setValue(MS_CONFIG_PREFIX + "/colorARC", StelUtils::vec3fToStr(rgb));
 }
 
 void MeteorShowersMgr::setColorIR(const Vec3f& rgb)
 {
-	m_colorIR = rgb;
-	QString rgbStr = QString("%1,%2,%3").arg(rgb[0]).arg(rgb[1]).arg(rgb[2]);
-	m_conf->setValue(MS_CONFIG_PREFIX + "/colorIR", rgbStr);
+	m_colorIR = rgb;	
+	m_conf->setValue(MS_CONFIG_PREFIX + "/colorIR", StelUtils::vec3fToStr(rgb));
 }
 
 void MeteorShowersMgr::setEnableAtStartup(const bool& b)
@@ -484,8 +473,12 @@ void MeteorShowersMgr::setFontSize(int pixelSize)
 
 void MeteorShowersMgr::setEnableLabels(const bool& b)
 {
-	m_enableLabels = b;
-	m_conf->setValue(MS_CONFIG_PREFIX + "/flag_radiant_labels", b);
+	if (m_enableLabels != b)
+	{
+		m_enableLabels = b;
+		m_conf->setValue(MS_CONFIG_PREFIX + "/flag_radiant_labels", b);
+		emit enableLabelsChanged(b);
+	}
 }
 
 void MeteorShowersMgr::setEnableMarker(const bool& b)

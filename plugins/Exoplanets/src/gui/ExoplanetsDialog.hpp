@@ -55,11 +55,14 @@ private slots:
 	void setHabitableEnabled(int checkState);
 	void setDisplayAtStartupEnabled(int checkState);
 	void setDisplayShowExoplanetsButton(int checkState);
+	void setDisplayShowExoplanetsDesignations(int checkState);
 	void updateStateReceiver(Exoplanets::UpdateState state);
         void updateCompleteReceiver();
 	void restoreDefaults(void);
 	void saveSettings(void);
 	void updateJSON(void);
+	void drawDiagram(void);
+	void populateDiagramsList();
 
 private:
         Ui_exoplanetsDialog* ui;
@@ -70,6 +73,7 @@ private:
 	void updateGuiFromSettings(void);
 	QTimer* updateTimer;
 
+	typedef QPair<QString, int> axisPair;
 };
 
 #endif // _EXOPLANETSDIALOG_HPP_

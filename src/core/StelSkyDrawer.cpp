@@ -66,13 +66,14 @@ StelSkyDrawer::StelSkyDrawer(StelCore* acore) :
 	oldLum(-1.f),
 	big3dModelHaloRadius(150.f)
 {
-	qsrand (QDateTime::currentMSecsSinceEpoch());
+	setObjectName("StelSkyDrawer");
 	QSettings* conf = StelApp::getInstance().getSettings();
 	initColorTableFromConfigFile(conf);
 
 	setFlagHasAtmosphere(conf->value("landscape/flag_atmosphere", true).toBool());
 	setTwinkleAmount(conf->value("stars/star_twinkle_amount",0.3).toFloat());
 	setFlagTwinkle(conf->value("stars/flag_star_twinkle",true).toBool());
+	setFlagForcedTwinkle(conf->value("stars/flag_forced_twinkle",false).toBool());
 	setMaxAdaptFov(conf->value("stars/mag_converter_max_fov",70.0).toFloat());
 	setMinAdaptFov(conf->value("stars/mag_converter_min_fov",0.1).toFloat());
 	setFlagLuminanceAdaptation(conf->value("viewing/use_luminance_adaptation",true).toBool());
@@ -85,9 +86,9 @@ StelSkyDrawer::StelSkyDrawer(StelCore* acore) :
 
 	bool ok=true;
 
-	setBortleScaleIndex(conf->value("stars/init_bortle_scale",2).toInt(&ok));
+	setBortleScaleIndex(conf->value("stars/init_bortle_scale",3).toInt(&ok));
 	if (!ok)
-		setBortleScaleIndex(2);
+		setBortleScaleIndex(3);
 
 	setRelativeStarScale(conf->value("stars/relative_scale",1.0).toFloat(&ok));
 	if (!ok)
@@ -191,7 +192,7 @@ void StelSkyDrawer::init()
 	starShaderVars.pos = starShaderProgram->attributeLocation("pos");
 	starShaderVars.color = starShaderProgram->attributeLocation("color");
 	starShaderVars.texture = starShaderProgram->uniformLocation("tex");
-			
+
 	update(0);
 }
 
@@ -212,8 +213,8 @@ void StelSkyDrawer::update(double)
 	// moved parts from setBortleScale() here
 	// These value have been calibrated by hand, looking at the faintest star in stellarium at around 40 deg FOV
 	// They should roughly match the scale described at http://en.wikipedia.org/wiki/Bortle_Dark-Sky_Scale
-	static const float bortleToInScale[9] = {2.45, 1.55, 1.0, 0.63, 0.40, 0.24, 0.23, 0.145, 0.09};
-	if (getFlagHasAtmosphere())
+	static const float bortleToInScale[9] = {2.45f, 1.55f, 1.0f, 0.63f, 0.40f, 0.24f, 0.23f, 0.145f, 0.09f};
+	if (getFlagHasAtmosphere() && core->getJD()>2387627.5) // JD given is J1825.0; ignore Bortle scale index before that.
 	    setInputScale(bortleToInScale[bortleScaleIndex-1]);
 	else
 	    setInputScale(bortleToInScale[0]);
@@ -414,20 +415,24 @@ void StelSkyDrawer::postDrawPointSource(StelPainter* sPainter)
 }
 
 // Draw a point source halo.
-bool StelSkyDrawer::drawPointSource(StelPainter* sPainter, const Vec3f& v, const RCMag& rcMag, const Vec3f& color, bool checkInScreen)
+bool StelSkyDrawer::drawPointSource(StelPainter* sPainter, const Vec3f& v, const RCMag& rcMag, const Vec3f& color, bool checkInScreen, float twinkleFactor)
 {
 	Q_ASSERT(sPainter);
 
 	if (rcMag.radius<=0.f)
 		return false;
 
-	Vec3d win;
-	if (!(checkInScreen ? sPainter->getProjector()->projectCheck(Vec3d(v[0],v[1],v[2]), win) : sPainter->getProjector()->project(Vec3d(v[0],v[1],v[2]), win)))
+	// Why do we need Vec3d here? Try with Vec3f win.
+//	Vec3d win;
+//	if (!(checkInScreen ? sPainter->getProjector()->projectCheck(Vec3d(v[0],v[1],v[2]), win) : sPainter->getProjector()->project(Vec3d(v[0],v[1],v[2]), win)))
+//		return false;
+	Vec3f win;
+	if (!(checkInScreen ? sPainter->getProjector()->projectCheck(v, win) : sPainter->getProjector()->project(v, win)))
 		return false;
 
 	const float radius = rcMag.radius;
-	// Random coef for star twinkling
-	const float tw = (flagStarTwinkle && flagHasAtmosphere) ? (1.f-twinkleAmount*qrand()/RAND_MAX)*rcMag.luminance : rcMag.luminance;
+	// Random coef for star twinkling. twinkleFactor can introduce height-dependent twinkling.
+	const float tw = (flagStarTwinkle && (flagHasAtmosphere || flagForcedTwinkle)) ? (1.f-twinkleFactor*twinkleAmount*qrand()/RAND_MAX)*rcMag.luminance : rcMag.luminance;
 
 	// If the rmag is big, draw a big halo
 	if (radius>MAX_LINEAR_RADIUS+5.f)
@@ -516,6 +521,8 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 	// Now draw the halo according the object brightness
 	bool save = flagStarTwinkle;
 	flagStarTwinkle = false;
+	bool saveP = flagForcedTwinkle;
+	flagForcedTwinkle = false;
 
 	RCMag rcm;
 	computeRCMag(mag, &rcm);
@@ -524,7 +531,8 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 	// If the disk of the planet is big enough to be visible, we should adjust the eye adaptation luminance
 	// so that the radius of the halo is small enough to be not visible (so that we see the disk)
 
-	float tStart = 2.f;
+	// TODO: Change drawing halo to more realistic view of stars and planets
+	float tStart = 3.f; // Was 2.f: planet's halo is too dim
 	float tStop = 6.f;
 	bool truncated=false;
 
@@ -562,6 +570,7 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 		postDrawPointSource(painter);
 	}
 	flagStarTwinkle=save;
+	flagForcedTwinkle=saveP;
 }
 
 float StelSkyDrawer::findWorldLumForMag(float mag, float targetRadius)
@@ -644,24 +653,28 @@ void StelSkyDrawer::preDraw()
 // See http://en.wikipedia.org/wiki/Bortle_Dark-Sky_Scale
 void StelSkyDrawer::setBortleScaleIndex(int bIndex)
 {
-	// Associate the Bortle index (1 to 9) to inScale value
-	if (bIndex<1)
+	if(bortleScaleIndex!=bIndex)
 	{
-		qWarning() << "WARNING: Bortle scale index range is [1;9], given" << bIndex;
-		bIndex = 1;
-	}
-	if (bIndex>9)
-	{
-		qWarning() << "WARNING: Bortle scale index range is [1;9], given" << bIndex;
-		bIndex = 9;
-	}
+		// Associate the Bortle index (1 to 9) to inScale value
+		if (bIndex<1)
+		{
+			qWarning() << "WARNING: Bortle scale index range is [1;9], given" << bIndex;
+			bIndex = 1;
+		}
+		if (bIndex>9)
+		{
+			qWarning() << "WARNING: Bortle scale index range is [1;9], given" << bIndex;
+			bIndex = 9;
+		}
 
-	bortleScaleIndex = bIndex;
-	// GZ: I moved this block to update()
-	// These value have been calibrated by hand, looking at the faintest star in stellarium at around 40 deg FOV
-	// They should roughly match the scale described at http://en.wikipedia.org/wiki/Bortle_Dark-Sky_Scale
-	// static const float bortleToInScale[9] = {2.45, 1.55, 1.0, 0.63, 0.40, 0.24, 0.23, 0.145, 0.09};
-	// setInputScale(bortleToInScale[bIndex-1]);
+		bortleScaleIndex = bIndex;
+		emit bortleScaleIndexChanged(bortleScaleIndex);
+		// GZ: I moved this block to update()
+		// These value have been calibrated by hand, looking at the faintest star in stellarium at around 40 deg FOV
+		// They should roughly match the scale described at http://en.wikipedia.org/wiki/Bortle_Dark-Sky_Scale
+		// static const float bortleToInScale[9] = {2.45, 1.55, 1.0, 0.63, 0.40, 0.24, 0.23, 0.145, 0.09};
+		// setInputScale(bortleToInScale[bIndex-1]);
+	}
 }
 
 

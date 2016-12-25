@@ -30,6 +30,7 @@ MSSearchDialog::MSSearchDialog(MeteorShowersMgr* mgr)
 	: m_mgr(mgr)
 	, m_ui(new Ui_MSSearchDialog)
 {
+	dialogName = "MeteorShowersSearch";
 }
 
 MSSearchDialog::~MSSearchDialog()
@@ -44,16 +45,8 @@ void MSSearchDialog::retranslate()
 		m_ui->retranslateUi(dialog);
 		setHeaderNames();
 
-		//Retranslate name and datatype strings
-		QTreeWidgetItemIterator it(m_ui->listEvents);
-		while (*it)
-		{
-			//Name
-			(*it)->setText(ColumnName, q_((*it)->text(ColumnName)));
-			//Data type
-			(*it)->setText(ColumnDataType, q_((*it)->text(ColumnDataType)));
-			++it;
-		}
+		if (!m_ui->listEvents->findItems("", Qt::MatchContains, 0).isEmpty())
+			searchEvents();
 	}
 }
 
@@ -73,6 +66,7 @@ void MSSearchDialog::createDialogContent()
 	connect(&StelApp::getInstance(), SIGNAL(languageChanged()), this, SLOT(retranslate()));
 
 	connect(m_ui->closeStelWindow, SIGNAL(clicked()), this, SLOT(close()));
+	connect(m_ui->TitleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
 
 	connect(m_ui->searchButton, SIGNAL(clicked()), this, SLOT(checkDates()));
 
@@ -127,7 +121,7 @@ void MSSearchDialog::searchEvents()
 		treeItem->setText(ColumnName, r.name);
 		treeItem->setText(ColumnZHR, r.zhr);
 		treeItem->setText(ColumnDataType, r.type);
-		treeItem->setText(ColumnPeak, r.peak.toString("dd/MMM/yyyy"));
+		treeItem->setText(ColumnPeak, r.peak.toString("d MMMM yyyy"));
 	}
 
 	// adjust the column width
@@ -150,7 +144,7 @@ void MSSearchDialog::selectEvent(const QModelIndex &modelIndex)
 
 	// Change date
 	QString peak = modelIndex.sibling(modelIndex.row(), ColumnPeak).data().toString();
-	StelApp::getInstance().getCore()->setJD(QDate::fromString(peak, "dd/MMM/yyyy").toJulianDay());
+	StelApp::getInstance().getCore()->setJD(QDate::fromString(peak, "d MMMM yyyy").toJulianDay());
 	m_mgr->repaint();
 
 	// Find the object

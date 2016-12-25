@@ -38,7 +38,6 @@ Meteor::Meteor(const StelCore* core, const StelTextureSP& bolideTexture)
 	, m_bolideTexture(bolideTexture)
 	, m_segments(10)
 {
-	qsrand(QDateTime::currentMSecsSinceEpoch());
 }
 
 Meteor::~Meteor()
@@ -164,7 +163,7 @@ bool Meteor::update(double deltaTime)
 		return false;
 	}
 
-	if (m_position[2] < m_finalZ)
+	if (!m_core->getRealTimeSpeed() || m_position[2] < m_finalZ)
 	{
 		// burning has stopped so magnitude fades out
 		// assume linear fade out

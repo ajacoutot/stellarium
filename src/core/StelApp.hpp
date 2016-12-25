@@ -22,6 +22,7 @@
 
 #include <QString>
 #include <QObject>
+#include "StelModule.hpp"
 
 // Predeclaration of some classes
 class StelCore;
@@ -44,7 +45,12 @@ class StelGuiBase;
 class StelMainScriptAPIProxy;
 class StelScriptMgr;
 class StelActionMgr;
+class StelPropertyMgr;
 class StelProgressController;
+
+#ifdef 	ENABLE_SPOUT
+class SpoutSender;
+#endif
 
 //! @class StelApp
 //! Singleton main Stellarium application class.
@@ -123,6 +129,9 @@ public:
 	//! Get the actions manager to use for managing and editing actions
 	StelActionMgr* getStelActionManager() {return actionMgr;}
 
+	//! Return the property manager
+	StelPropertyMgr* getStelPropertyManager() {return propMgr;}
+
 	//! Get the video manager
 	StelVideoMgr* getStelVideoMgr() {return videoMgr;}
 
@@ -136,9 +145,6 @@ public:
 
 	//! Update translations, font for GUI and sky everywhere in the program.
 	void updateI18n();
-
-	//! Update and reload sky culture informations everywhere in the program.
-	void updateSkyCulture();
 
 	//! Return the main configuration options
 	QSettings* getSettings() {return confSettings;}
@@ -174,7 +180,7 @@ public:
 
 	//! Get the GUI instance implementing the abstract GUI interface.
 	StelGuiBase* getGui() const {return stelGui;}
-	//! Tell the StelApp instance which GUI si currently being used.
+	//! Tell the StelApp instance which GUI is currently being used.
 	//! The caller is responsible for destroying the GUI.
 	void setGui(StelGuiBase* b) {stelGui=b;}
 
@@ -199,6 +205,9 @@ public:
 	void setViewportEffect(const QString& effectName);
 	//! Get the type of viewport effect currently used
 	QString getViewportEffect() const;
+
+	//! Dump diagnostics about action call priorities
+	void dumpModuleActionPriorities(StelModule::StelModuleActionName actionName);
 	
 	///////////////////////////////////////////////////////////////////////////
 	// Scriptable methods
@@ -214,17 +223,28 @@ public slots:
 	//! Get flag for showing decimal degree in various places.
 	bool getFlagShowDecimalDegrees() const {return flagShowDecimalDegrees;}
 
-	//! Set flag for using calculation of azimuth from south towards west (as in old astronomical literature)
-	bool getFlagOldAzimuthUsage() const { return flagUseAzimuthFromSouth; }
-	//! Get flag for using calculation of azimuth from south towards west (as in old astronomical literature)
-	void setFlagOldAzimuthUsage(bool use) { flagUseAzimuthFromSouth=use; }
+	//! Set flag for using calculation of azimuth from south towards west (instead north towards east)
+	bool getFlagSouthAzimuthUsage() const { return flagUseAzimuthFromSouth; }
+	//! Get flag for using calculation of azimuth from south towards west (instead north towards east)
+	void setFlagSouthAzimuthUsage(bool use) { flagUseAzimuthFromSouth=use; }
 	
+	//! Set flag for using calculation of azimuth from south towards west (as in older astronomical literature)
+	//! @deprecated Use getFlagSouthAzimuthUsage() instead.
+	bool getFlagOldAzimuthUsage() const { return getFlagSouthAzimuthUsage(); }
+	//! Get flag for using calculation of azimuth from south towards west (as in older astronomical literature)
+	//! @deprecated Use setFlagSouthAzimuthUsage() instead.
+	void setFlagOldAzimuthUsage(bool use) { setFlagSouthAzimuthUsage(use); }
+
+
 	//! Get the current number of frame per second.
 	//! @return the FPS averaged on the last second
 	float getFps() const {return fps;}
 
 	//! Return the time since when stellarium is running in second.
 	static double getTotalRunTime();
+
+	//! Return the scaled time for animated objects
+	static double getAnimationTime();
 
 	//! Report that a download occured. This is used for statistics purposes.
 	//! Connect this slot to QNetworkAccessManager::finished() slot to obtain statistics at the end of the program.
@@ -236,7 +256,6 @@ signals:
 	void visionNightModeChanged(bool);
 	void colorSchemeChanged(const QString&);
 	void languageChanged();
-	void skyCultureChanged(const QString&);
 
 	//! Called just after a progress bar is added.
 	void progressBarAdded(const StelProgressController*);
@@ -258,8 +277,11 @@ private:
 	//! Handle pinch on multi touch devices.
 	void handlePinch(qreal scale, bool started);
 
+	//! Used internally to set the viewport effects.
 	void prepareRenderBuffer();
-	void applyRenderBuffer();
+	//! Used internally to set the viewport effects.
+	//! @param drawFbo the OpenGL fbo we need to render into.
+	void applyRenderBuffer(int drawFbo=0);
 
 	// The StelApp singleton
 	static StelApp* singleton;
@@ -278,6 +300,9 @@ private:
 
 	//Actions manager fot the application.  Will replace shortcutMgr.
 	StelActionMgr* actionMgr;
+
+	//Property manager for the application
+	StelPropertyMgr* propMgr;
 
 	// Textures manager for the application
 	StelTextureMgr* textureMgr;
@@ -340,6 +365,7 @@ private:
 	bool initialized;
 
 	static qint64 startMSecs;
+	static float animationScale;
 
 	// Temporary variables used to store the last gl window resize
 	// if the core was not yet initialized
@@ -358,7 +384,7 @@ private:
 
 	QList<StelProgressController*> progressControllers;
 
-	int baseFontSize;
+	int baseFontSize;	
 
 	// Framebuffer object used for viewport effects.
 	QOpenGLFramebufferObject* renderBuffer;
@@ -368,6 +394,9 @@ private:
 	bool flagShowDecimalDegrees;
 	// flag to indicate we want calculate azimuth from south towards west (as in old astronomical literature)
 	bool flagUseAzimuthFromSouth;
+#ifdef 	ENABLE_SPOUT
+	SpoutSender* spoutSender;
+#endif
 
 };
 
