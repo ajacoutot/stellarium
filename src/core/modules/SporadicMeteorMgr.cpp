@@ -35,7 +35,6 @@ SporadicMeteorMgr::SporadicMeteorMgr(int zhr, int maxv)
 	, m_flagShow(true)
 {
 	setObjectName("SporadicMeteorMgr");
-	qsrand(QDateTime::currentMSecsSinceEpoch());
 }
 
 SporadicMeteorMgr::~SporadicMeteorMgr()
@@ -51,7 +50,7 @@ void SporadicMeteorMgr::init()
 				StelFileMgr::getInstallationDir() + "/textures/cometComa.png",
 				StelTexture::StelTextureParams(true, GL_LINEAR, GL_CLAMP_TO_EDGE));
 
-	setZHR(StelApp::getInstance().getSettings()->value("astro/meteor_rate", 10).toInt());
+	setZHR(StelApp::getInstance().getSettings()->value("astro/meteor_zhr", 10).toInt());
 }
 
 double SporadicMeteorMgr::getCallOrder(StelModuleActionName actionName) const
@@ -70,15 +69,6 @@ void SporadicMeteorMgr::update(double deltaTime)
 		return;
 	}
 
-	StelCore* core = StelApp::getInstance().getCore();
-
-	// is paused?
-	// freeze meteors at the current position
-	if (!core->getTimeRate())
-	{
-		return;
-	}
-
 	// step through and update all active meteors
 	foreach (SporadicMeteor* m, activeMeteors)
 	{
@@ -87,6 +77,8 @@ void SporadicMeteorMgr::update(double deltaTime)
 			activeMeteors.removeOne(m);
 		}
 	}
+
+	StelCore* core = StelApp::getInstance().getCore();
 
 	// going forward/backward OR current ZHR is zero ?
 	// don't create new meteors
@@ -112,6 +104,10 @@ void SporadicMeteorMgr::update(double deltaTime)
 			if (m->isAlive())
 			{
 				activeMeteors.append(m);
+			}
+			else
+			{
+				delete m;
 			}
 		}
 	}
@@ -140,6 +136,9 @@ void SporadicMeteorMgr::draw(StelCore* core)
 
 void SporadicMeteorMgr::setZHR(int zhr)
 {
-	m_zhr = zhr;
-	emit zhrChanged(zhr);
+	if(zhr!=m_zhr)
+	{
+		m_zhr = zhr;
+		emit zhrChanged(zhr);
+	}
 }

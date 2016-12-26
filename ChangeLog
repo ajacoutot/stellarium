@@ -1,3 +1,79 @@
+0.15.1 [2016-12-25]
+
+Version 0.15.1 introduces a few new exciting features.
+- The Digital Sky Survey (DSS) can be shown (requires online connection).
+- AstroCalc is now available from the main menu and gives interesting new computational insight.
+- Stellarium can act as Spout sender (important for multimedia environments; Windows only).
+In addition, a lot of bugs have been fixed.
+- wait() and waitFor() in the Scripting Engine no longer inhibits performance of moves.
+- DE430/431 DeltaT may be OK now. We still want to test a bit more, though.
+- ArchaeoLines also offers two arbitrary declination lines.
+- Added support of time zones dependent by location.
+- Added new skyculture: Sardinian.
+- Added updates and improvements in catalogs.
+- Added improvements in the GUI.
+- Added cross identification data for stars from Bright Star Catalogue, 5th Revised Ed. (Hoffleit+, 1991).
+
+Full list of changes: https://launchpad.net/stellarium/0.15/0.15.1
+
+0.15.0 [2016-07-31]
+In memory of our team member Barry Gerdes.
+
+Version 0.15.0 is based on Qt5.6. Starting with this version, some graphics cards 
+have been blacklisted by Qt and are automatically forced to use ANGLE on Windows. 
+We introduce a major internal change with the StelProperty system. 
+This allows simpler access to internal variables and therefore more ways of operation. 
+Most notably this version introduces an alternative control option via RemoteControl, 
+a new webserver interface plugin. 
+We also introduce another milestone towards providing better astronomical accuracy for 
+historical applications: experimental support of getting planetary positions from JPL DE430 and 
+  DE431 ephemerides. This feature is however not fully tested yet. 
+The major changes:
+- Added StelProperty system
+- Added new plugin for exhibitions and planetariums - Remote Control
+- Added new skycultures: Macedonian, Ojibwe, Dakota/Lakota/Nakota, 
+  Kamilaroi/Euahlayi
+- Updated code of plugins
+- Added Bookmarks tool and updated AstroCalc tool
+- Added new functions for Scripting Engine and new scripts
+- Added Miller Cylindrical Projection
+- Added updates and improvements in DSO and star catalogues (include initial 
+  support of The Washington Double Star Catalog)
+- azimuth lines (also targetting geographic locations) in ArchaeoLines plugin	
+- Many fixes and improvements...
+
+In addition, we prepared a new user guide.
+	
+Full list of changes: https://launchpad.net/stellarium/0.15/0.15.0
+
+0.14.3 [2016-03-20]
+Bugfix release:
+- Added Bengali description for landscapes (LP: #1548627)
+- Added background transparency in Oculars plugin (LP: #1511393)
+- Fixed serial port issue on Windows version (LP: #1543813)
+- Fixed MESA mode on Windows (LP: #1509735)
+- Fixed Stellarium crashes in ocular view of Saturn/Neptune/Uranus (LP: #1495232)
+- Fixed artifacts in rendering of Mercury in the Sun (LP: #1533647)
+- Fixed loading scenes for Scenery 3D plugin (LP: #1533069)
+- Fixed movement of radiant when time is switched manually (LP: #1535950)
+- Fixed changing name of planet (LP: #1548008)
+
+0.14.2 [2016-01-08]
+Bugfix release:
+- Reduce planet brightness in daylight (LP: #1503248)
+- Fixed perspective mode with offset viewport in scenery3d (LP: #1509728)
+- Fixed wrong altitudes for some locations (LP: #1530759)
+- Fixed some skyculture links
+- Fixed editing some shortcut keys (LP: #1530567)
+- Fixed drawing reticle for telescope (LP: #1526348)
+- Refactoring coloring markers of the DSO
+- Removed info about Moon phases (avoid inconsistency for strings).
+- Updated default config options
+- Updated icons for View dialog
+- Updated Stellarium DSO Catalog
+- Added list of dwarf galaxies (Search Tool)
+- Added improvements in Scenery 3D plugin
+
 0.14.1 [2015-12-02]
 Bugfix release:
 - Added support for side-by-side assembly technology (LP: #1400045)

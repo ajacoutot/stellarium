@@ -50,6 +50,26 @@
 #include <QGraphicsLinearLayout>
 #include <QSettings>
 
+// Inspired by text-use-opengl-buffer branch: work around font problems in GUI buttons.
+// May be useful in other broken OpenGL font situations. RasPi necessity as of 2016-03-26.
+QPixmap getTextPixmap(const QString& str, QFont font)
+{
+	// Render the text str into a QPixmap.
+	QRect strRect = QFontMetrics(font).boundingRect(str);
+	int w = strRect.width()+1+(int)(0.02f*strRect.width());
+	int h = strRect.height();
+
+	QPixmap strPixmap(w, h);
+	strPixmap.fill(Qt::transparent);
+	QPainter painter(&strPixmap);
+	font.setStyleStrategy(QFont::NoAntialias); // else: font problems on RasPi20160326
+	painter.setFont(font);
+	//painter.setRenderHints(QPainter::TextAntialiasing);
+	painter.setPen(Qt::white);
+	painter.drawText(-strRect.x(), -strRect.y(), str);
+	return strPixmap;
+}
+
 void StelButton::initCtor(const QPixmap& apixOn,
                           const QPixmap& apixOff,
                           const QPixmap& apixNoChange,
@@ -62,12 +82,13 @@ void StelButton::initCtor(const QPixmap& apixOn,
 	pixOff = apixOff;
 	pixHover = apixHover;
 	pixNoChange = apixNoChange;
-	noBckground = noBackground;
+	noBckground = !StelApp::getInstance().getSettings()->value("gui/flag_show_buttons_background", !noBackground).toBool();
 	isTristate_ = isTristate;
 	opacity = 1.;
 	hoverOpacity = 0.;
 	action = aaction;
 	checked = false;
+	flagChangeFocus = false;
 
 	Q_ASSERT(!pixOn.isNull());
 	Q_ASSERT(!pixOff.isNull());
@@ -178,6 +199,9 @@ void StelButton::mouseReleaseEvent(QGraphicsSceneMouseEvent*)
 {
 	if (action!=NULL && !action->isCheckable())
 		setChecked(toggleChecked(checked));
+
+	if (flagChangeFocus) // true if button is on bottom bar
+		StelMainView::getInstance().setFocusOnSky(); // Change the focus after clicking on button
 }
 
 void StelButton::updateIcon()
@@ -225,14 +249,18 @@ void StelButton::setBackgroundPixmap(const QPixmap &newBackground)
 LeftStelBar::LeftStelBar(QGraphicsItem* parent)
 	: QGraphicsItem(parent)
 	, hideTimeLine(NULL)
+	, helpLabelPixmap(NULL)
 {
 	// Create the help label
 	helpLabel = new QGraphicsSimpleTextItem("", this);
 	helpLabel->setBrush(QBrush(QColor::fromRgbF(1,1,1,1)));
+	if (qApp->property("text_texture")==true) // CLI option -t given?
+		helpLabelPixmap=new QGraphicsPixmapItem(this);
 }
 
 LeftStelBar::~LeftStelBar()
 {
+	if (helpLabelPixmap) { delete helpLabelPixmap; helpLabelPixmap=NULL; }
 }
 
 void LeftStelBar::addButton(StelButton* button)
@@ -244,6 +272,7 @@ void LeftStelBar::addButton(StelButton* button)
 		posY += r.bottom()-1;
 	}
 	button->setParentItem(this);
+	button->setFocusOnSky(false);
 	button->prepareGeometryChange(); // could possibly be removed when qt 4.6 become stable
 	button->setPos(0., qRound(posY+10.5));
 
@@ -265,7 +294,7 @@ QRectF LeftStelBar::boundingRectNoHelpLabel() const
 	QRectF childRect;
 	foreach (QGraphicsItem *child, QGraphicsItem::childItems())
 	{
-		if (child==helpLabel)
+		if ((child==helpLabel) || (child==helpLabelPixmap))
 			continue;
 		QPointF childPos = child->pos();
 		QTransform matrix = child->transform() * QTransform().translate(childPos.x(), childPos.y());
@@ -295,11 +324,20 @@ void LeftStelBar::buttonHoverChanged(bool b)
 			}
 			helpLabel->setText(tip);
 			helpLabel->setPos(qRound(boundingRectNoHelpLabel().width()+15.5),qRound(button->pos().y()+button->pixmap().size().height()/2-8));
+			if (qApp->property("text_texture")==true)
+			{
+				helpLabel->setVisible(false);
+				helpLabelPixmap->setPixmap(getTextPixmap(tip, helpLabel->font()));
+				helpLabelPixmap->setPos(helpLabel->pos());
+				helpLabelPixmap->setVisible(true);
+			}
 		}
 	}
 	else
 	{
 		helpLabel->setText("");
+		if (qApp->property("text_texture")==true)
+			helpLabelPixmap->setVisible(false);
 	}
 	// Update the screen as soon as possible.
 	StelMainView::getInstance().thereWasAnEvent();
@@ -317,16 +355,29 @@ BottomStelBar::BottomStelBar(QGraphicsItem* parent,
                              const QPixmap& pixMiddle,
                              const QPixmap& pixSingle) :
 	QGraphicsItem(parent),
+	locationPixmap(NULL),
+	datetimePixmap(NULL),
+	fovPixmap(NULL),
+	fpsPixmap(NULL),
 	pixBackgroundLeft(pixLeft),
 	pixBackgroundRight(pixRight),
 	pixBackgroundMiddle(pixMiddle),
-	pixBackgroundSingle(pixSingle)
+	pixBackgroundSingle(pixSingle),
+	helpLabelPixmap(NULL)
 {
 	// The text is dummy just for testing
 	datetime = new QGraphicsSimpleTextItem("2008-02-06  17:33", this);
 	location = new QGraphicsSimpleTextItem("Munich, Earth, 500m", this);
 	fov = new QGraphicsSimpleTextItem("FOV 43.45", this);
 	fps = new QGraphicsSimpleTextItem("43.2 FPS", this);
+	if (qApp->property("text_texture")==true) // CLI option -t given?
+	{
+		datetimePixmap=new QGraphicsPixmapItem(this);
+		locationPixmap=new QGraphicsPixmapItem(this);
+		fovPixmap=new QGraphicsPixmapItem(this);
+		fpsPixmap=new QGraphicsPixmapItem(this);
+		helpLabelPixmap=new QGraphicsPixmapItem(this);
+	}
 
 	// Create the help label
 	helpLabel = new QGraphicsSimpleTextItem("", this);
@@ -366,6 +417,11 @@ BottomStelBar::~BottomStelBar()
 			}
 		}
 	}
+	if (datetimePixmap) { delete datetimePixmap; datetimePixmap=NULL; }
+	if (locationPixmap) { delete locationPixmap; locationPixmap=NULL; }
+	if (fovPixmap) { delete fovPixmap; fovPixmap=NULL; }
+	if (fpsPixmap) { delete fpsPixmap; fpsPixmap=NULL; }
+	if (helpLabelPixmap) { delete helpLabelPixmap; helpLabelPixmap=NULL; }
 }
 
 void BottomStelBar::addButton(StelButton* button, const QString& groupName, const QString& beforeActionName)
@@ -386,6 +442,7 @@ void BottomStelBar::addButton(StelButton* button, const QString& groupName, cons
 
 	button->setVisible(true);
 	button->setParentItem(this);
+	button->setFocusOnSky(true);
 	updateButtonsGroups();
 
 	connect(button, SIGNAL(hoverChanged(bool)), this, SLOT(buttonHoverChanged(bool)));
@@ -558,16 +615,29 @@ void BottomStelBar::updateText(bool updatePos)
 	if (getFlagShowTime())
 	{
 		if (getFlagShowTz())
-			newDateInfo = QString("%1   %2 %3").arg(locmgr.getPrintableDateLocal(jd)).arg(locmgr.getPrintableTimeLocal(jd)).arg(tz);
+			newDateInfo = QString("%1 %2 %3").arg(locmgr.getPrintableDateLocal(jd)).arg(locmgr.getPrintableTimeLocal(jd)).arg(tz);
 		else
-			newDateInfo = QString("%1   %2").arg(locmgr.getPrintableDateLocal(jd)).arg(locmgr.getPrintableTimeLocal(jd));
+			newDateInfo = QString("%1 %2").arg(locmgr.getPrintableDateLocal(jd)).arg(locmgr.getPrintableTimeLocal(jd));
 	}
-	QString newDateAppx = QString("JD %1").arg(jd, 0, 'f', 5);
+	QString newDateAppx = QString("JD %1").arg(jd, 0, 'f', 6);
 	if (getFlagTimeJd())
 	{
 		newDateAppx = newDateInfo;
-		newDateInfo = QString("JD %1").arg(jd, 0, 'f', 5);
+		newDateInfo = QString("JD %1").arg(jd, 0, 'f', 6);
 	}
+
+	QString planetName = core->getCurrentLocation().planetName;
+	QString tzName = core->getCurrentTimeZone();
+	if (tzName.contains("system_default") || (tzName.isEmpty() && planetName=="Earth"))
+		tzName = q_("System default");
+
+	QString currTZ = QString("%1: %2").arg(q_("Time zone")).arg(tzName);
+
+	if (tzName.contains("LMST") || tzName.contains("auto") || (planetName=="Earth" && jd<=StelCore::TZ_ERA_BEGINNING) || planetName!="Earth")
+		currTZ = q_("Local Mean Solar Time");
+
+	if (tzName.contains("LTST"))
+		currTZ = q_("Local True Solar Time");
 
 	if (datetime->text()!=newDateInfo)
 	{
@@ -584,10 +654,20 @@ void BottomStelBar::updateText(bool updatePos)
 			else
 				deltaTInfo = QString("%1s%2").arg(deltaT, 3, 'f', 3).arg(validRangeMarker);
 
-			datetime->setToolTip(QString("<p style='white-space:pre'>%1T = %2 [n-dot @ -23.8946\"/cy%3%4]<br>%5</p>").arg(QChar(0x0394)).arg(deltaTInfo).arg(QChar(0x00B2)).arg(sigmaInfo).arg(newDateAppx));
+			float ndot = -23.8946f;
+			if (core->de430IsActive() || core->de431IsActive())
+				ndot = -25.8f;
+
+			datetime->setToolTip(QString("<p style='white-space:pre'>%1T = %2 [n-dot @ %3\"/cy%4%5]<br>%6<br>%7</p>").arg(QChar(0x0394)).arg(deltaTInfo).arg(QString::number(ndot, 'f', 4)).arg(QChar(0x00B2)).arg(sigmaInfo).arg(newDateAppx).arg(currTZ));
 		}
 		else
-			datetime->setToolTip(QString("%1").arg(newDateAppx));
+			datetime->setToolTip(QString("<p style='white-space:pre'>%1<br>%2</p>").arg(newDateAppx).arg(currTZ));
+
+		if (qApp->property("text_texture")==true) // CLI option -t given?
+		{
+			datetime->setVisible(false); // hide normal thingy.
+			datetimePixmap->setPixmap(getTextPixmap(newDateInfo, datetime->font()));
+		}
 	}
 
 	// build location tooltip
@@ -633,19 +713,26 @@ void BottomStelBar::updateText(bool updatePos)
 			rho = q_("planetocentric observer");
 
 		location->setToolTip(QString("%1 %2; %3").arg(latStr).arg(lonStr).arg(rho));
+		if (qApp->property("text_texture")==true) // CLI option -t given?
+		{
+			locationPixmap->setPixmap(getTextPixmap(newLocation, location->font()));
+			location->setVisible(false);
+		}
 	}
 
 	QString str;
 
 	// build fov tooltip
 	QTextStream wos(&str);
+	// TRANSLATORS: Field of view. Please use abbreviation.
+	QString fovstr = QString("%1 ").arg(qc_("FOV", "abbreviation"));
 	if (getFlagFovDms())
 	{
-		wos << "FOV " << StelUtils::decDegToDmsStr(core->getMovementMgr()->getCurrentFov());
+		wos << fovstr << StelUtils::decDegToDmsStr(core->getMovementMgr()->getCurrentFov());
 	}
 	else
 	{
-		wos << "FOV " << qSetRealNumberPrecision(3) << core->getMovementMgr()->getCurrentFov() << QChar(0x00B0);
+		wos << fovstr << qSetRealNumberPrecision(3) << core->getMovementMgr()->getCurrentFov() << QChar(0x00B0);
 	}
 
 	if (fov->text()!=str)
@@ -655,6 +742,11 @@ void BottomStelBar::updateText(bool updatePos)
 		{
 			fov->setText(str);
 			fov->setToolTip(q_("Field of view"));
+			if (qApp->property("text_texture")==true) // CLI option -t given?
+			{
+				fovPixmap->setPixmap(getTextPixmap(str, fov->font()));
+				fov->setVisible(false);
+			}
 		}
 		else
 		{
@@ -667,7 +759,9 @@ void BottomStelBar::updateText(bool updatePos)
 
 	// build fps tooltip
 	QTextStream wos2(&str);
-	wos2 << qSetRealNumberPrecision(3) << StelApp::getInstance().getFps() << " FPS";
+	// TRANSLATORS: Frames per second. Please use abbreviation.
+	QString fpsstr = QString(" %1").arg(qc_("FPS", "abbreviation"));
+	wos2 << qSetRealNumberPrecision(3) << StelApp::getInstance().getFps() << fpsstr;
 	if (fps->text()!=str)
 	{
 		updatePos = true;
@@ -675,6 +769,11 @@ void BottomStelBar::updateText(bool updatePos)
 		{
 			fps->setText(str);
 			fps->setToolTip(q_("Frames per second"));
+			if (qApp->property("text_texture")==true) // CLI option -t given?
+			{
+				fpsPixmap->setPixmap(getTextPixmap(str, fps->font()));
+				fps->setVisible(false);
+			}
 		}
 		else
 		{
@@ -685,13 +784,26 @@ void BottomStelBar::updateText(bool updatePos)
 
 	if (updatePos)
 	{
+		int fovShift = 170;
+		if (getFlagFovDms())
+			fovShift = 195;
+
 		QRectF rectCh = getButtonsBoundingRect();
 		location->setPos(0, 0);		
 		int dtp = rectCh.right()-datetime->boundingRect().width()-5;
 		if ((dtp%2) == 1) dtp--; // make even pixel
 		datetime->setPos(dtp,0);
-		fov->setPos(datetime->x()-200, 0);
-		fps->setPos(datetime->x()-95, 0);
+		fov->setPos(datetime->x()-fovShift, 0);
+		fps->setPos(datetime->x()-75, 0);
+		if (qApp->property("text_texture")==true) // CLI option -t given?
+		{
+			locationPixmap->setPos(0,0);
+			int dtp = rectCh.right()-datetimePixmap->boundingRect().width()-5;
+			if ((dtp%2) == 1) dtp--; // make even pixel
+			datetimePixmap->setPos(dtp,0);
+			fovPixmap->setPos(datetime->x()-fovShift, 0);
+			fpsPixmap->setPos(datetime->x()-75, 0);
+		}
 	}
 }
 
@@ -714,7 +826,7 @@ QRectF BottomStelBar::boundingRectNoHelpLabel() const
 	QRectF childRect;
 	foreach (QGraphicsItem *child, QGraphicsItem::childItems())
 	{
-		if (child==helpLabel)
+		if ((child==helpLabel) || (child==helpLabelPixmap))
 			continue;
 		QPointF childPos = child->pos();
 		QTransform matrix = child->transform() * QTransform().translate(childPos.x(), childPos.y());
@@ -755,11 +867,20 @@ void BottomStelBar::buttonHoverChanged(bool b)
 			helpLabel->setText(tip);
 			//helpLabel->setPos(button->pos().x()+button->pixmap().size().width()/2,-27);
 			helpLabel->setPos(20,-27);
+			if (qApp->property("text_texture")==true)
+			{
+				helpLabel->setVisible(false);
+				helpLabelPixmap->setPixmap(getTextPixmap(tip, helpLabel->font()));
+				helpLabelPixmap->setPos(helpLabel->pos());
+				helpLabelPixmap->setVisible(true);
+			}
 		}
 	}
 	else
 	{
 		helpLabel->setText("");
+		if (qApp->property("text_texture")==true)
+			helpLabelPixmap->setVisible(false);
 	}
 	// Update the screen as soon as possible.
 	StelMainView::getInstance().thereWasAnEvent();

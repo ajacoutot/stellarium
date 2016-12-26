@@ -72,8 +72,6 @@ private:
 	QFile* currentDownloadFile;
 	class StelProgressController* progressBar;
 
-	QString userAgent;
-
 private slots:
 	void setNoSelectedInfo();
 	void setAllSelectedInfo();
@@ -102,6 +100,7 @@ private slots:
 	void cancelDownload();
 	void downloadFinished();
 	void downloadError(QNetworkReply::NetworkError);
+	void resetEphemControls();
 
 	//! Update the labels displaying the current default state
 	void updateConfigLabels();
@@ -131,6 +130,14 @@ private slots:
 	void setDeltaTAlgorithmDescription();
 	void showCustomDeltaTEquationDialog();
 
+	void populateDateFormatsList();
+	void setDateFormat();
+
+	void populateTimeFormatsList();
+	void setTimeFormat();
+
+	void setButtonBarDTFormat();
+
 	#ifndef DISABLE_SCRIPTING
 	//! The selection of script in the script list has changed
 	//! Updates the script information panel
@@ -147,6 +154,9 @@ private slots:
 	void populateScriptsList();
 	#endif
 	void setFixedDateTimeToCurrent();
+
+	void de430ButtonClicked();
+	void de431ButtonClicked();
 
 private:
 	StelGui* gui;

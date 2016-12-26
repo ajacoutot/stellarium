@@ -106,11 +106,11 @@ void main()
                              -0.9689   *tmpXYZ.x +1.8758  *tmpXYZ.y+0.0415   *tmpXYZ.z, 
                               0.0557   *tmpXYZ.x -0.2040  *tmpXYZ.y+1.0570   *tmpXYZ.z);
 		// This is now preliminary sRGB. We have to scale this with preset Gamma=2.2, channel-wise!
-        resultSkyColor.x=( resultSkyColor.x <= 0.0031308 ? 12.92*resultSkyColor.x : 1.055*pow(resultSkyColor.x, 1/2.4) - 0.055);
-        resultSkyColor.y=( resultSkyColor.y <= 0.0031308 ? 12.92*resultSkyColor.y : 1.055*pow(resultSkyColor.y, 1/2.4) - 0.055);
-        resultSkyColor.z=( resultSkyColor.z <= 0.0031308 ? 12.92*resultSkyColor.z : 1.055*pow(resultSkyColor.z, 1/2.4) - 0.055);
+        resultSkyColor.x=( resultSkyColor.x <= 0.0031308 ? 12.92*resultSkyColor.x : 1.055*pow(resultSkyColor.x, 1./2.4) - 0.055);
+        resultSkyColor.y=( resultSkyColor.y <= 0.0031308 ? 12.92*resultSkyColor.y : 1.055*pow(resultSkyColor.y, 1./2.4) - 0.055);
+        resultSkyColor.z=( resultSkyColor.z <= 0.0031308 ? 12.92*resultSkyColor.z : 1.055*pow(resultSkyColor.z, 1./2.4) - 0.055);
 
-        // final scaling. GZ: Not sre, maybe do this scale before the Gamma step just above.
+        // final scaling. GZ: Not sure, maybe do this scale before the Gamma step just above.
 		resultSkyColor*=brightnessScale;
 	}
 }

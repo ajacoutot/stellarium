@@ -25,6 +25,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <QSettings>
+#include "StelPropertyMgr.hpp"
 
 Skylight::Skylight() :
 	thetas(0.f),
@@ -39,8 +40,15 @@ Skylight::Skylight() :
 	Ax = Bx = Cx = Dx = Ex = 0.f;
 	Ay = By = Cy = Dy = Ey = 0.f;
 	term_x = term_y = term_Y = 0.f;
-	// conf
-	QSettings* conf = StelApp::getInstance().getSettings();
+
+	conf = StelApp::getInstance().getSettings();
+	Q_ASSERT(conf);
+
+	StelPropertyMgr *propMgr=StelApp::getInstance().getStelPropertyManager();
+	Q_ASSERT(propMgr);
+
+	setObjectName("Skylight");
+	propMgr->registerObject(this);
 
 	AYt=conf->value("Skylight/AYt",  0.1787f).toFloat();
 	AYc=conf->value("Skylight/AYc", -1.4630f).toFloat();

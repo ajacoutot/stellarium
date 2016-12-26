@@ -1,13 +1,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % The Legrand Orange Book
 % LaTeX Template
-% Version 2.1 (14/11/15)
+% Version 2.1.1 (14/07/16)
 %
 % This template has been downloaded from:
 % http://www.LaTeXTemplates.com
 %
 % Mathias Legrand (legrand.mathias@gmail.com) with modifications by:
 % Vel (vel@latextemplates.com)
+% Alexander Wolf (alex.v.wolf@gmail.com)
+% Georg Zotti (georg.zotti@univie.ac.at)
 %
 % License:
 % CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
@@ -46,18 +48,19 @@
 %----------------------------------------------------------------------------------------
 
 \input{structure} % Insert the commands.tex file which contains the majority of the structure behind the template
+%\usepackage{fancyvrb}
+\usepackage{marvosym}% For the Zodiac symbols, \Aries etc. 
+\usepackage{tocvsec2} % Allows fine-tuning TOC depth. (to suppress GPL sections in TOC but have them still numbered)
+%\newenvironment{commands}{\begin{wBox}\begin{Verbatim}}{\end{Verbatim}\end{wBox}}
+%\DefineVerbatimEnvironment{commands}{\begin{wBox}\begin{Verbatim}}{\end{Verbatim}\end{wBox}}
+%\lstnewenvironment{commands}{\begin{wBox}\lstset{basicstyle=\ttfamily}\begin{lstlisting}}{\end{lstlisting}\end{wBox}}
 
-% Emergency definition as this is not in MiKTeX.
-\makeatletter
-%\DeclareRobustCommand*
-\providecommand\textsubscript[1]{%
-  \@textsubscript{\selectfont#1}}
-\def\@textsubscript#1{%
-  {\m@th\ensuremath{_{\mbox{\fontsize\sf@size\z@#1}}}}}
-\makeatother
+%% GZ Some commands which can be used later, like version number etc.
+
+\newcommand{\StelVersion}{0.15.1}
+\newcommand{\DocumentEdition}{1}
 
 \begin{document}
-
 %----------------------------------------------------------------------------------------
 %	TITLE PAGE
 %----------------------------------------------------------------------------------------
@@ -69,9 +72,13 @@
 \node at (current page.north west)
 {\begin{tikzpicture}[remember picture,overlay]
 \node[anchor=north west,inner sep=0pt] at (0,0) {\includegraphics[width=\paperwidth]{bookcover}}; % Background image
-\draw[anchor=north] (midpoint) node [fill=ocre!30!white,fill opacity=0.6,text opacity=1,inner sep=1cm]{\Huge\centering\bfseries\sffamily\parbox[c][][t]{\paperwidth}{\centering Stellarium User Guide\\[18pt] % Book title
-{\Large Version 0.15.0-1}\\[15pt] % Subtitle
-{\Large Matthew Gates, Alexander Wolf, Barry Gerdes, Georg Zotti}}}; % Author name
+\draw[anchor=north] (midpoint) node [fill=ocre!30!white,fill opacity=0.6,text opacity=1,inner sep=1cm]%
+     {\Huge\centering\bfseries\sffamily\parbox[c][][t]{\paperwidth}%
+                                              {\centering Stellarium User Guide\\[18pt] % Book title
+                                              {\Large Matthew Gates, Georg Zotti, Alexander Wolf, Barry Gerdes}\\[15pt]% Author names
+                                              {\Large Version \StelVersion-\DocumentEdition}\\[15pt]% Version like 0.15.0-1
+                                              {\Large 2016}% Year
+                                             }}; % 
 \end{tikzpicture}};
 \end{tikzpicture}
 \vfill
@@ -86,15 +93,35 @@
 \thispagestyle{empty}
 
 \noindent Copyright \copyright\ 2006-2009 Matthew Gates.\\ % Copyright notice
-\noindent Copyright \copyright\ 2011-2015 Alexander Wolf.\\ % Copyright notice
-\noindent Copyright \copyright\ 2013-2014 Barry Gerdes.\\ % Copyright notice
-\noindent Copyright \copyright\ 2014-2015 Georg Zotti.\\ % Copyright notice
+\noindent Copyright \copyright\ 2014-2016 Georg Zotti.\\ % Copyright notice
+\noindent Copyright \copyright\ 2011-2016 Alexander Wolf.\\ % Copyright notice
+\noindent Copyright \copyright\ 2013-2014 Barry Gerdes (\dag\,2014).\\ % Copyright notice
+\ifthenelse{\equal{\StelVersion}{0.15.0}}{%
+\noindent \fbox{
+  \begin{minipage}[t]{0.8\linewidth}
+    Stellarium Version 0.15 is dedicated in memory of our team
+    member Barry Gerdes (\dag\,2014).
+  \end{minipage}
+}\\}{}
 
 \noindent \textsc{stellarium.org}\\ % URL
 
-\noindent Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts. A copy of the license is included in the section entitled ``GNU Free Documentation License''.\\ % License information
+\noindent Permission is granted to copy, distribute and/or modify this
+document under the terms of the GNU Free Documentation License,
+Version 1.2 or any later version published by the Free Software
+Foundation; with no Invariant Sections, no Front-Cover Texts, and no
+Back-Cover Texts. A copy of the license is included in
+appendix~\ref{ch:License} entitled ``GNU Free Documentation
+License''.\\ % License information
 
-\noindent \textit{A draft of version 0.15.0-1, \today} % Printing/edition date
+\small{\noindent \textit{All trademarks, third party brands, product names, trade names,
+corporate names and company names mentioned may be trademarks of their
+respective owners or registered trademarks of other companies and are
+used for purposes of explanation and to the readers' benefit, without
+implying a violation of copyright law.}}\\
+
+
+\noindent \textit{Version \StelVersion-\DocumentEdition, \today} % Printing/edition date
 
 %----------------------------------------------------------------------------------------
 %	TABLE OF CONTENTS
@@ -110,6 +137,9 @@
 
 \pagestyle{fancy} % Print headers again
 
+
+%% There should be one source file per chapter. 
+%% Structural changes (chapter images etc.) should be in this main file to better have an overview.
 %----------------------------------------------------------------------------------------
 %	PART I
 %----------------------------------------------------------------------------------------
@@ -119,28 +149,30 @@
 %----------------------------------------------------------------------------------------
 %	CHAPTER 1 (Introduction)
 %----------------------------------------------------------------------------------------
+\chapterimage{chapter-t2-bg} % Chapter heading image
 
-\include{introduction}
+\include{ch_introduction}
 
 
 %----------------------------------------------------------------------------------------
 %	CHAPTER 2 (Installation)
 %----------------------------------------------------------------------------------------
+% \chapterimage{chapter-t2-bg} % Chapter heading image Did not change...
 
-\include{installation}
-
-%----------------------------------------------------------------------------------------
-%	CHAPTER 3 (Interface Guide)
-%----------------------------------------------------------------------------------------
-
-\include{interface_guide}
-
+\include{ch_getting_started}
 
 %----------------------------------------------------------------------------------------
-%	CHAPTER 4 (Configuration)
+%	CHAPTER 3 (was called Interface Guide, but is just a first tour.)
 %----------------------------------------------------------------------------------------
 
-\include{configuration}
+\include{ch_tour}
+
+
+%----------------------------------------------------------------------------------------
+%	CHAPTER 4 (was called Configuration, but is really an in-depth description of the GUI panels.)
+%----------------------------------------------------------------------------------------
+
+\include{ch_interface}
 
 %----------------------------------------------------------------------------------------
 %	PART II
@@ -151,96 +183,119 @@
 %----------------------------------------------------------------------------------------
 %	CHAPTER 5 (Advanced Use)
 %----------------------------------------------------------------------------------------
+\chapterimage{chapter-t3-bg} % Chapter heading image
 
-\include{advanced_use}
-
-
+\include{ch_advanced_use}
+%% GZ I propose to  replace the old chapter with course notes I have developed in late 2015. To get the old version, activate next line instead.
+%\include{ch_landscapes}
+\include{ch_landscapes_gz}
+\include{ch_dso} %% Maybe DSO is more a reference chapter? --> Appendix in this case? Or split?
+\include{ch_skycultures}
 %----------------------------------------------------------------------------------------
 %	PART III
 %----------------------------------------------------------------------------------------
-
-\part{Extra Stuff}
-
-\include{built-in_plugins}
-
-\include{scripts}
+\part{Extending Stellarium}
+\chapterimage{chapter-t3-bg} % Chapter heading image
+\include{ch_plugins}
+\include{plg_interfaces} % TUI, RemoteControl, (2017: D-BUS?)
+\include{plg_catalogs}
+\include{plg_archaeolines}
+\include{plg_scenery3d} % move to historical.
+\include{plg_atTheTelescope} % TODO: TelescopeControl, Oculars, various hardware projects with Raspberry, Arduino, ...
+\include{ch_scripting}
 
 %----------------------------------------------------------------------------------------
 %	PART IV
 %----------------------------------------------------------------------------------------
-
+\renewcommand{\StelTOCdepth}{0}
 \part{Practical Astronomy}
-
 
 %----------------------------------------------------------------------------------------
 %	CHAPTER X (Astronomical Concepts)
 %----------------------------------------------------------------------------------------
-
-\include{astronomical_concepts}
+\chapterimage{chapter-t4-bg} % Chapter heading image
+\include{ch_astronomical_concepts}
 
 %----------------------------------------------------------------------------------------
 %	CHAPTER X (Astronomical Phenomena)
 %----------------------------------------------------------------------------------------
 
-\include{astronomical_phenomena}
+\include{ch_astronomical_phenomena}
 
 %----------------------------------------------------------------------------------------
-%	CHAPTER X (Sky Guide)
+%	CHAPTER X (A Short Sky Guide)
 %----------------------------------------------------------------------------------------
 
-\include{sky_guide}
+\include{ch_sky_guide}
 
 %----------------------------------------------------------------------------------------
 %	CHAPTER X (Exercises)
 %----------------------------------------------------------------------------------------
+\chapterimage{chapter-t4-bg} % Chapter heading image
+\include{ch_exercises}
 
-\include{exercises}
+%% TODO: Chapter "Stellarium at the Telescope"
 
 %----------------------------------------------------------------------------------------
 %	PART V
 %----------------------------------------------------------------------------------------
 
-\part{Appendicies}
+\appendix
+%% GZ reset counter to avoid section entries in Appendix.
+\renewcommand{\StelTOCdepth}{0}% reset this to 0 before appendix!
 
-
-%----------------------------------------------------------------------------------------
-%	CHAPTER X (Stellarium Reference)
-%----------------------------------------------------------------------------------------
-
-\include{reference}
+\part{Appendices}
+\chapterimage{chapter-t1-bg} % Chapter heading image
 
 %----------------------------------------------------------------------------------------
-%	CHAPTER X (Star Catalogue)
+%	CHAPTER A (Hotkeys) -- N.B. "H" :-)
 %----------------------------------------------------------------------------------------
 
-\include{star_catalogue}
-
-
-%----------------------------------------------------------------------------------------
-%	CHAPTER X (License)
-%----------------------------------------------------------------------------------------
-
-\include{license}
+\include{app_hotkeys}
 
 %----------------------------------------------------------------------------------------
-%	CHAPTER X (Acknowledgements)
+%	CHAPTER B (Bortle Scale) -- N.B. Try to keep this as Appendix "B" [for Bortle]
 %----------------------------------------------------------------------------------------
 
-\include{acknowledgements}
+\include{app_bortle_scale}
+
+%----------------------------------------------------------------------------------------
+%	CHAPTER C (Star Catalogue)
+%----------------------------------------------------------------------------------------
+
+\include{app_star_catalogue}
+
+%----------------------------------------------------------------------------------------
+%	CHAPTER D (config.ini)
+%----------------------------------------------------------------------------------------
+
+\include{app_config_ini}
+\include{app_ssystem_ini}
+%----------------------------------------------------------------------------------------
+%	CHAPTER E (Accuracy, and some notes about used algorithms.)
+%----------------------------------------------------------------------------------------
+
+\include{app_accuracy}%% This could go to the front as section of a chapter "Scientific Use"
+
+%----------------------------------------------------------------------------------------
+%	CHAPTER F (Acknowledgements) 
+%----------------------------------------------------------------------------------------
+
+\include{app_acknowledgements}
+
+%----------------------------------------------------------------------------------------
+%	CHAPTER G (License) -- N.B. "G" for GNU sounds also good.
+%----------------------------------------------------------------------------------------
+
+\include{app_license}
 
 
 %----------------------------------------------------------------------------------------
 %	BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
-
 \chapter*{Bibliography}
 \addcontentsline{toc}{chapter}{\textcolor{ocre}{Bibliography}}
-\section*{Books}
-\addcontentsline{toc}{section}{Books}
-\printbibliography[heading=bibempty,type=book]
-\section*{Articles}
-\addcontentsline{toc}{section}{Articles}
-\printbibliography[heading=bibempty,type=article]
+\printbibliography[heading=bibempty]
 
 %----------------------------------------------------------------------------------------
 %	INDEX
@@ -255,3 +310,9 @@
 %----------------------------------------------------------------------------------------
 
 \end{document}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-PDF-mode: t
+%%% TeX-master: t
+%%% End: 

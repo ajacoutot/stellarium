@@ -55,6 +55,7 @@ SatellitesDialog::SatellitesDialog()
 	, checkStateRole(Qt::UserRole)
 {
 	ui = new Ui_satellitesDialog;
+	dialogName = "Satellites";
 }
 
 SatellitesDialog::~SatellitesDialog()
@@ -94,6 +95,7 @@ void SatellitesDialog::createDialogContent()
 	ui->tabs->setCurrentIndex(0);
 	ui->labelAutoAdd->setVisible(false);
 	connect(ui->closeStelWindow, SIGNAL(clicked()), this, SLOT(close()));
+	connect(ui->TitleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
 	connect(&StelApp::getInstance(), SIGNAL(languageChanged()),
 	        this, SLOT(retranslate()));
 	Satellites* plugin = GETSTELMODULE(Satellites);
@@ -281,7 +283,7 @@ void SatellitesDialog::updateSatelliteData()
 	{
 		ui->nameEdit->clear();
 		ui->noradNumberEdit->clear();
-		ui->descriptionTextEdit->clear();
+		ui->descriptionTextEdit->clear();		
 		ui->tleFirstLineEdit->clear();
 		ui->tleSecondLineEdit->clear();
 	}
@@ -995,7 +997,7 @@ void SatellitesDialog::selectCurrentIridiumFlare(const QModelIndex &modelIndex)
 	QString date = modelIndex.sibling(modelIndex.row(), IridiumFlaresDate).data().toString();
 	bool ok;
 	double JD  = StelUtils::getJulianDayFromISO8601String(date.left(10) + "T" + date.right(8), &ok);
-	JD -= StelUtils::getGMTShiftFromQT(JD)/24.;
+	JD -= StelApp::getInstance().getCore()->getUTCOffset(JD)/24.;
 
 	StelObjectMgr* objectMgr = GETSTELMODULE(StelObjectMgr);
 	if (objectMgr->findAndSelectI18n(name) || objectMgr->findAndSelect(name))

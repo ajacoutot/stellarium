@@ -32,12 +32,13 @@
 //!
 //! TASKS TO IMPROVE:
 //!
-//! Some components of the Schaefer model are strongly simplified. E.g.,
+//! Some components of the Schaefer model as given in BASIC sourcecode in the 1998 S&T article are strongly simplified. E.g.,
 //! - setDate should be taken always in the Gregorian Calendar, or circumvented altogether:
 //! - RA takes the right ascension of the sun. --> Could be replaced with the proper value!
 //! - bNightTerm includes an 11.0-year solar cycle, and will be erratic a few cycles from 1992. --> At least find a more accurate average period.
 //! - Extinction could make use of the K computed in SetLocation. But first re-verify that
-//!   the code here really follows the Schaefer model (with obvious amendments).
+//! the code here really follows the Schaefer model (with obvious amendments).
+
 class Skybright
 {
 public:

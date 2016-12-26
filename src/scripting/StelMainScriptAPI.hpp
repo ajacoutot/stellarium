@@ -163,11 +163,17 @@ public slots:
 	//! - altitude-geometric : geometric altitude angle in decimal degrees
 	//! - azimuth-geometric : geometric azimuth angle in decimal degrees
 	//! - ra : right ascension angle (current date frame) in decimal degrees
-	//! - dec : declination angle in (current date frame) decimal degrees
+	//! - dec : declination angle (current date frame) in decimal degrees
 	//! - raJ2000 : right ascension angle (J2000 frame) in decimal degrees
-	//! - decJ2000 : declination angle in (J2000 frame) decimal degrees
+	//! - decJ2000 : declination angle (J2000 frame) in decimal degrees
 	//! - glong : galactic longitude in decimal degrees
 	//! - glat : galactic latitude in decimal degrees
+	//! - sglong : supergalactic longitude in decimal degrees
+	//! - sglat : supergalactic latitude in decimal degrees
+	//! - elong : ecliptic longitude in decimal degrees (on Earth only!)
+	//! - elat : ecliptic latitude in decimal degrees (on Earth only!)
+	//! - elongJ2000 : ecliptic longitude (Earth's J2000 frame) in decimal degrees
+	//! - elatJ2000 : ecliptic latitude (Earth's J2000 frame) in decimal degrees
 	//! - vmag : visual magnitude
 	//! - vmage : visual magnitude (extincted)
 	//! - size: angular size in radians
@@ -184,6 +190,7 @@ public slots:
 	//! - elongation : elongation of object in radians (for Solar system objects only!)
 	//! - elongation-dms : elongation of object in DMS (for Solar system objects only!)
 	//! - elongation-deg : elongation of object in decimal degrees (for Solar system objects only!)
+	//! - ptype : object type (for Solar system objects only!)
 	QVariantMap getObjectInfo(const QString& name);
 
 	//! Fetch a map with data about an latest selected object's position, magnitude and so on
@@ -198,6 +205,12 @@ public slots:
 	//! - decJ2000 : declination angle in (J2000 frame) decimal degrees	
 	//! - glong : galactic longitude in decimal degrees
 	//! - glat : galactic latitude in decimal degrees
+	//! - sglong : supergalactic longitude in decimal degrees
+	//! - sglat : supergalactic latitude in decimal degrees
+	//! - elong : ecliptic longitude in decimal degrees (on Earth only!)
+	//! - elat : ecliptic latitude in decimal degrees (on Earth only!)
+	//! - elongJ2000 : ecliptic longitude (Earth's J2000 frame) in decimal degrees
+	//! - elatJ2000 : ecliptic latitude (Earth's J2000 frame) in decimal degrees
 	//! - vmag : visual magnitude
 	//! - vmage : visual magnitude (extincted)	
 	//! - size: angular size in radians
@@ -215,6 +228,7 @@ public slots:
 	//! - elongation : elongation of object in radians (for Solar system objects only!)
 	//! - elongation-dms : elongation of object in DMS (for Solar system objects only!)
 	//! - elongation-deg : elongation of object in decimal degrees (for Solar system objects only!)
+	//! - ptype : object type (for Solar system objects only!)
 	QVariantMap getSelectedObjectInfo();
 
 	//! Clear the display options, setting a "standard" view.
@@ -256,14 +270,16 @@ public slots:
 	//! @return the Declination angle in J2000 frame in decimal degrees.
 	double getViewDecJ2000Angle();
 
-	//! move the current viewing direction to some specified altitude and azimuth
+	//! move the current viewing direction to some specified altitude and azimuth.
+	//! The move will run in AltAz coordinates. This will look different from moveToRaDec() when timelapse is fast.
 	//! angles may be specified in a format recognised by StelUtils::getDecAngle()
 	//! @param alt the altitude angle
 	//! @param azi the azimuth angle
 	//! @param duration the duration of the movement in seconds
 	void moveToAltAzi(const QString& alt, const QString& azi, float duration=1.);
 
-	//! move the current viewing direction to some specified right ascension and declination
+	//! move the current viewing direction to some specified right ascension and declination.
+	//! The move will run in equatorial coordinates. This will look different from moveToAltAzi() when timelapse is fast.
 	//! angles may be specified in a format recognised by StelUtils::getDecAngle()
 	//! @param ra the right ascension angle
 	//! @param dec the declination angle
@@ -402,7 +418,14 @@ public slots:
 	//! This can be used e.g. in wide cylindrical panorama screens to push the horizon down and see more of the sky.
 	//! @param x -0.5...0.5 horizontal offset. This is not available in the GUI, and it is recommended to keep it at 0.
 	//! @param y -0.5...0.5 vertical offset. This is available in the GUI.
+	//! @deprecated Use StelMovementMgr::moveViewport instead
 	void setViewportOffset(const float x, const float y);
+
+	//! Set a lateral width distortion. Use this e.g. in startup.ssc.
+	//! Implemented for 0.15 for a setup with 5 beamers with edge blending. The 9600x1200 get squeezed somewhat which looks a bit odd. Use this stretch to compensate.
+	//! Experimental! To avoid overuse, there is currently no config.ini setting available.
+	//! @note Currently only the projected content is affected. ScreenImage, ScreenLabel is not stretched.
+	void setViewportStretch(const float stretch);
 
 	//! Get a list of Sky Culture IDs
 	//! @return a list of valid sky culture IDs
@@ -440,14 +463,14 @@ public slots:
 	//! @param filename the file name of the image.  If a relative
 	//! path is specified, "scripts/" will be prefixed before the
 	//! image is searched for using StelFileMgr.
-	//! @param ra0 The right ascension of the first corner of the image in degrees
-	//! @param dec0 The declination of the first corner of the image in degrees
-	//! @param ra1 The right ascension of the second corner of the image in degrees
-	//! @param dec1 The declination of the second corner of the image in degrees
-	//! @param ra2 The right ascension of the third corner of the image in degrees
-	//! @param dec2 The declination of the third corner of the image in degrees
-	//! @param ra3 The right ascension of the fourth corner of the image in degrees
-	//! @param dec3 The declination of the fourth corner of the image in degrees
+	//! @param ra0 The right ascension of the first corner of the image in degrees (J2000.0)
+	//! @param dec0 The declination of the first corner of the image in degrees (J2000.0)
+	//! @param ra1 The right ascension of the second corner of the image in degrees (J2000.0)
+	//! @param dec1 The declination of the second corner of the image in degrees (J2000.0)
+	//! @param ra2 The right ascension of the third corner of the image in degrees (J2000.0)
+	//! @param dec2 The declination of the third corner of the image in degrees (J2000.0)
+	//! @param ra3 The right ascension of the fourth corner of the image in degrees (J2000.0)
+	//! @param dec3 The declination of the fourth corner of the image in degrees (J2000.0)
 	//! @param minRes The minimum resolution setting for the image
 	//! @param maxBright The maximum brightness setting for the image
 	//! @param visible The initial visibility of the image
@@ -495,7 +518,7 @@ public slots:
 					  const QString& ra, const QString& dec, double angSize, double rotation,
 					  double minRes=2.5, double maxBright=14, bool visible=true);
 
-	//! Load an image which will have sky coordinates.
+	//! Load an image which will have a sky location given in alt-azimuthal coordinates.
 	//! @param id a string ID to be used when referring to this
 	//! image (e.g. when changing the displayed status or deleting
 	//! it.
@@ -514,14 +537,14 @@ public slots:
 	//! @param maxBright The maximum brightness setting for the image
 	//! @param visible The initial visibility of the image
 	void loadSkyImageAltAz(const QString& id, const QString& filename,
-					  double alt0, double azi0,
-					  double alt1, double azi1,
-					  double alt2, double azi2,
-					  double alt3, double azi3,
+					  double azi0, double alt0,
+					  double azi1, double alt1,
+					  double azi2, double alt2,
+					  double azi3, double alt3,
 					  double minRes=2.5, double maxBright=14, bool visible=true);
 
 	//! Convenience function which allows loading of a sky image based on a
-	//! central coordinate, angular size and rotation.
+	//! central alt-azimuthal coordinate, angular size and rotation.
 	//! @param id a string ID to be used when referring to this
 	//! image (e.g. when changing the displayed status or deleting it.
 	//! @param filename the file name of the image.  If a relative
@@ -541,6 +564,15 @@ public slots:
 	//! Remove a SkyImage.
 	//! @param id the ID of the image to remove.
 	void removeSkyImage(const QString& id);
+
+	//! Get screen coordinates from some specified altitude and azimuth
+	//! angles may be specified in a format recognised by StelUtils::getDecAngle()
+	//! @param alt the altitude angle [degrees]
+	//! @param azi the azimuth angle [degrees]
+	//! @return a map of object data.  Keys:
+	//! - x : x coordinate on the screen
+	//! - y : y coordinate on the screen
+	QVariantMap getScreenXYFromAltAzi(const QString& alt, const QString& azi);
 
 	//! Load a sound from a file.
 	//! @param filename the name of the file to load.
@@ -568,6 +600,17 @@ public slots:
 	//! @param id the identifier used when loadSound was called
 	void dropSound(const QString& id);
 
+	//! Get position in a playing sound.
+	//! @param id the identifier used when loadSound was called
+	//! @return position [ms] during play or pause, 0 when stopped, -1 in case of error.
+	qint64 getSoundPosition(const QString& id);
+
+	//! Get duration of a sound object (if possible).
+	//! @param id the identifier used when loadSound was called
+	//! @return duration[ms] if known, 0 if unknown (e.g. during load/before playing), -1 in case of error.
+	qint64 getSoundDuration(const QString& id);
+
+
 	//! Load a video from a file.
 	//! @param filename the name of the file to load, relative to the scripts directory.
 	//! @param id the identifier which will be used to refer to the video
@@ -578,8 +621,8 @@ public slots:
 	//! You should load a video with show=true (or leave default), to start it immediately in native size.
 	//! Else set show=false, and then call resizeVideo(), playVideo() or use playVideoPopout().
 	//! @param alpha the initial alpha value of the video, defaults to 1.
-	//! @bug With Qt5/V0.15+, @param alpha does not work properly (no semitransparency), only @param alpha=0 makes it invisible.
-	//! @bug With Qt5/V0.15+, @param show=false causes an assert failure (crash) on Windows. The responsible assert is not fired on release builds.
+	//! @bug With Qt5/V0.15+, alpha does not work properly (no semitransparency), only alpha=0 makes it invisible.
+	//! @bug With Qt5/V0.15+, show=false causes an assert failure (crash) on Windows. The responsible assert is not fired on release builds.
 	void loadVideo(const QString& filename, const QString& id, float x, float y, bool show=true, float alpha=1.0f);
 
 	//! Play a video which has previously been loaded with loadVideo
@@ -587,16 +630,16 @@ public slots:
 	void playVideo(const QString& id, bool keepVisibleAtEnd=false);
 
 	//! Play a video which has previously been loaded with loadVideo with a complex effect.
-	//! The video appears out of @param fromX/ @param fromY,
-	//! grows within @param popupDuration to size @param finalSizeX/@param finalSizeY, and
-	//! shrinks back towards @param fromX/@param fromY at the end during @param popdownDuration.
+	//! The video appears out of fromX/fromY,
+	//! grows within popupDuration to size finalSizeX/finalSizeY, and
+	//! shrinks back towards fromX/fromY at the end during popdownDuration.
 	//! @param id the identifier used when loadVideo was called
 	//! @param fromX X position of starting point, counted from left of window. May be absolute (if >1) or relative (0<X<1)
 	//! @param fromY Y position of starting point, counted from top of window. May be absolute (if >1) or relative (0<Y<1)
 	//! @param atCenterX X position of center of final video frame, counted from left of window. May be absolute (if >1) or relative (0<X<1)
 	//! @param atCenterY Y position of center of final video frame, counted from top of window. May be absolute (if >1) or relative (0<Y<1)
-	//! @param finalSizeX X size of final video frame. May be absolute (if >1) or relative to window size (0<X<1). If -1, scale proportional from @param finalSizeY.
-	//! @param finalSizeY Y size of final video frame. May be absolute (if >1) or relative to window size (0<Y<1). If -1, scale proportional from @param finalSizeX.
+	//! @param finalSizeX X size of final video frame. May be absolute (if >1) or relative to window size (0<X<1). If -1, scale proportional from finalSizeY.
+	//! @param finalSizeY Y size of final video frame. May be absolute (if >1) or relative to window size (0<Y<1). If -1, scale proportional from finalSizeX.
 	//! @param popupDuration duration of growing start transition (seconds)
 	//! @param frozenInTransition true if video should be paused during growing/shrinking transition.
 	void playVideoPopout(const QString& id, float fromX, float fromY, float atCenterX, float atCenterY, float finalSizeX, float finalSizeY, float popupDuration, bool frozenInTransition);
@@ -744,6 +787,19 @@ public slots:
 	//! @return value of Zodiacal Light intensity, e.g. "1.2"
 	double getZodiacalLightIntensity();
 
+	//! Returns the currently set Bortle scale index, which is used to simulate light pollution.
+	//! Wrapper for StelSkyDrawer::getBortleScaleIndex
+	//! @see https://en.wikipedia.org/wiki/Bortle_scale
+	//! @return the Bortle scale index in range [1,9]
+	int getBortleScaleIndex() const;
+
+	//! Changes the Bortle scale index, which is used to simulate light pollution.
+	//! Wrapper for StelSkyDrawer::setBortleScaleIndex
+	//! Valid values are in the range [1,9]
+	//! @see https://en.wikipedia.org/wiki/Bortle_scale
+	//! @param index the new Bortle scale index, must be in range [1,9]
+	void setBortleScaleIndex(int index);
+
 	//! For use in setDate and waitFor
 	//! For parameter descriptions see setDate().
 	//! @returns Julian day.
@@ -754,8 +810,7 @@ public slots:
 
 	//! Pauses the script for \e t seconds
 	//! @param t the number of seconds to wait
-	//! @note This method is pure JavaScript implementation.
-	void wait(double t) { Q_UNUSED(t) }
+	void wait(double t);
 
 	//! Waits until a specified simulation date/time. This function
 	//! will take into account the rate (and direction) in which simulation
@@ -765,8 +820,7 @@ public slots:
 	//! prevent infinite wait time.
 	//! @param dt the date string to use
 	//! @param spec "local" or "utc"
-	//! @note This method is pure JavaScript implementation.
-	void waitFor(const QString& dt, const QString& spec="utc") { Q_UNUSED(dt); Q_UNUSED(spec) }
+	void waitFor(const QString& dt, const QString& spec="utc");
 
 signals:
 	void requestLoadSkyImage(const QString& id, const QString& filename,

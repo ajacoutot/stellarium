@@ -92,11 +92,12 @@ Scenery3d::Scenery3d(Scenery3dMgr* parent)
       lazyDrawing(false), updateOnlyDominantOnMoving(true), updateSecondDominantOnMoving(true), needsMovementEndUpdate(false),
       needsCubemapUpdate(true), needsMovementUpdate(false), lazyInterval(2.0), lastCubemapUpdate(0.0), lastCubemapUpdateRealTime(0), lastMovementEndRealTime(0),
       cubeMapCubeTex(0), cubeMapCubeDepth(0), cubeMapTex(), cubeRB(0), dominantFace(0), secondDominantFace(1), cubeFBO(0), cubeSideFBO(), cubeMappingCreated(false),
-      cubeVertexBuffer(QOpenGLBuffer::VertexBuffer), cubeIndexBuffer(QOpenGLBuffer::IndexBuffer), cubeIndexCount(0),
+      cubeVertexBuffer(QOpenGLBuffer::VertexBuffer), transformedCubeVertexBuffer(QOpenGLBuffer::VertexBuffer), cubeIndexBuffer(QOpenGLBuffer::IndexBuffer), cubeIndexCount(0),
       lightOrthoNear(0.1f), lightOrthoFar(1000.0f), parallaxScale(0.015f)
 {
+	#ifndef NDEBUG
 	qDebug()<<"Scenery3d constructor...";
-
+	#endif
 	//the arrays should all contain only zeroes
 	Q_ASSERT(cubeMapTex[0]==0);
 	Q_ASSERT(cubeSideFBO[0]==0);
@@ -117,8 +118,9 @@ Scenery3d::Scenery3d(Scenery3dMgr* parent)
 	debugTextFont.setFamily("Courier");
 	debugTextFont.setPixelSize(16);
 
-
+	#ifndef NDEBUG
 	qDebug()<<"Scenery3d constructor...done";
+	#endif
 }
 
 Scenery3d::~Scenery3d()
@@ -323,11 +325,25 @@ void Scenery3d::handleKeys(QKeyEvent* e)
 {
 	//TODO FS maybe move this to Mgr, so that input is separate from rendering and scene management?
 
-	if ((e->type() == QKeyEvent::KeyPress) && (e->modifiers() & Qt::ControlModifier))
+	static const Qt::KeyboardModifier S3D_SPEEDBASE_MODIFIER = Qt::ShiftModifier;
+
+	//on OSX, there is a still-unfixed bug which prevents the command key (=Qt's Control key) to be used here
+	//see https://bugreports.qt.io/browse/QTBUG-36839
+	//we have to use the option/ALT key instead to activate walking around, and CMD is used as multiplier.
+#ifdef Q_OS_OSX
+	static const Qt::KeyboardModifier S3D_CTRL_MODIFIER = Qt::AltModifier;
+	static const Qt::KeyboardModifier S3D_SPEEDMUL_MODIFIER = Qt::ControlModifier;
+#else
+	static const Qt::KeyboardModifier S3D_CTRL_MODIFIER = Qt::ControlModifier;
+	static const Qt::KeyboardModifier S3D_SPEEDMUL_MODIFIER = Qt::AltModifier;
+#endif
+
+	if ((e->type() == QKeyEvent::KeyPress) && (e->modifiers() & S3D_CTRL_MODIFIER))
 	{
 		// Pressing CTRL+ALT: 5x, CTRL+SHIFT: 10x speedup; CTRL+SHIFT+ALT: 50x!
-		float speedup=((e->modifiers() & Qt::ShiftModifier)? 10.0f : 1.0f);
-		speedup *= ((e->modifiers() & Qt::AltModifier)? 5.0f : 1.0f);
+		float speedup=((e->modifiers() & S3D_SPEEDBASE_MODIFIER)? 10.0f : 1.0f);
+		speedup *= ((e->modifiers() & S3D_SPEEDMUL_MODIFIER)? 5.0f : 1.0f);
+
 		switch (e->key())
 		{
 			case Qt::Key_PageUp:    movement[2] = -1.0f * speedup; e->accept(); break;
@@ -337,19 +353,43 @@ void Scenery3d::handleKeys(QKeyEvent* e)
 			case Qt::Key_Right:     movement[0] =  1.0f * speedup; e->accept(); break;
 			case Qt::Key_Left:      movement[0] = -1.0f * speedup; e->accept(); break;
 #ifdef QT_DEBUG
-				//leave this out on non-debug builds to reduce conflict chance
+			//leave this out on non-debug builds to reduce conflict chance
 			case Qt::Key_P:         saveFrusts(); e->accept(); break;
 #endif
 		}
 	}
-	else if ((e->type() == QKeyEvent::KeyRelease) && (e->modifiers() & Qt::ControlModifier))
+	// FS: No modifier here!? GZ: I want the lock feature. If this does not work for MacOS, it is not there, but only on that platform...
+#ifdef Q_OS_OSX
+	else if ((e->type() == QKeyEvent::KeyRelease) )
+#else
+	else if ((e->type() == QKeyEvent::KeyRelease) && (e->modifiers() & S3D_CTRL_MODIFIER))
+#endif
 	{
-		if (e->key() == Qt::Key_PageUp || e->key() == Qt::Key_PageDown ||
-				e->key() == Qt::Key_Up     || e->key() == Qt::Key_Down     ||
-				e->key() == Qt::Key_Left   || e->key() == Qt::Key_Right     )
+		//if a movement key is released, stop moving in that direction
+		//we do not accept the event on MacOS to allow further handling the event in other modules. (Else the regular view motion stop does not work!)
+		switch (e->key())
 		{
-			movement[0] = movement[1] = movement[2] = 0.0f;
-			e->accept();
+			case Qt::Key_PageUp:
+			case Qt::Key_PageDown:
+				movement[2] = 0.0f;
+#ifndef Q_OS_OSX
+				e->accept();
+#endif
+				break;
+			case Qt::Key_Up:
+			case Qt::Key_Down:
+				movement[1] = 0.0f;
+#ifndef Q_OS_OSX
+				e->accept();
+#endif
+				break;
+			case Qt::Key_Right:
+			case Qt::Key_Left:
+				movement[0] = 0.0f;
+#ifndef Q_OS_OSX
+				e->accept();
+#endif
+				break;
 		}
 	}
 }
@@ -1585,10 +1625,15 @@ void Scenery3d::drawFromCubeMap()
 		cubeShader->setAttributeBuffer(ShaderMgr::ATTLOC_TEXCOORD,GL_FLOAT,0,3);
 	else // 2D tex coords are stored in the same buffer, but with an offset
 		cubeShader->setAttributeBuffer(ShaderMgr::ATTLOC_TEXCOORD,GL_FLOAT,cubeVertices.size() * sizeof(Vec3f),2);
-	cubeVertexBuffer.release();
 	cubeShader->enableAttributeArray(ShaderMgr::ATTLOC_TEXCOORD);
-	cubeShader->setAttributeArray(ShaderMgr::ATTLOC_VERTEX, reinterpret_cast<const GLfloat*>(transformedCubeVertices.constData()),3);
+	cubeVertexBuffer.release();
+
+	//upload transformed vertex data
+	transformedCubeVertexBuffer.bind();
+	transformedCubeVertexBuffer.allocate(transformedCubeVertices.constData(), transformedCubeVertices.size() * sizeof(Vec3f));
+	cubeShader->setAttributeBuffer(ShaderMgr::ATTLOC_VERTEX, GL_FLOAT, 0,3);
 	cubeShader->enableAttributeArray(ShaderMgr::ATTLOC_VERTEX);
+	transformedCubeVertexBuffer.release();
 
 	glEnable(GL_BLEND);
 	//note that GL_ONE is required here for correct blending (see drawArrays)
@@ -1837,7 +1882,7 @@ void Scenery3d::drawDebug()
 
     StelPainter painter(altAzProjector);
     painter.setFont(debugTextFont);
-    painter.setColor(1,0,1,1);
+    painter.setColor(1.f,0.f,1.f,1.f);
     // For now, these messages print light mixture values.
     painter.drawText(20, 160, lightMessage);
     painter.drawText(20, 145, lightMessage2);
@@ -2025,6 +2070,8 @@ void Scenery3d::init()
 
 	cubeVertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
 	cubeVertexBuffer.create();
+	transformedCubeVertexBuffer.setUsagePattern(QOpenGLBuffer::StreamDraw);
+	transformedCubeVertexBuffer.create();
 	cubeIndexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
 	cubeIndexBuffer.create();
 

@@ -48,9 +48,207 @@ typedef QSharedPointer<Nebula> NebulaP;
 class NebulaMgr : public StelObjectModule
 {
 	Q_OBJECT
+	//StelActions
 	Q_PROPERTY(bool flagHintDisplayed
 		   READ getFlagHints
-		   WRITE setFlagHints)
+		   WRITE setFlagHints
+		   NOTIFY flagHintsDisplayedChanged)
+	Q_PROPERTY(bool flagTypeFiltersUsage
+		   READ getFlagUseTypeFilters
+		   WRITE setFlagUseTypeFilters
+		   NOTIFY flagUseTypeFiltersChanged)
+	//StelProperties
+	Q_PROPERTY(Nebula::TypeGroup typeFilters
+		   READ getTypeFilters
+		   WRITE setTypeFilters
+		   NOTIFY typeFiltersChanged
+		   )
+	Q_PROPERTY(Nebula::CatalogGroup catalogFilters
+		   READ getCatalogFilters
+		   WRITE setCatalogFilters
+		   NOTIFY catalogFiltersChanged
+		   )
+	Q_PROPERTY(bool hintsProportional
+		   READ getHintsProportional
+		   WRITE setHintsProportional
+		   NOTIFY hintsProportionalChanged
+		   )
+	Q_PROPERTY(bool flagSurfaceBrightnessUsage
+		   READ getFlagSurfaceBrightnessUsage
+		   WRITE setFlagSurfaceBrightnessUsage
+		   NOTIFY flagSurfaceBrightnessUsageChanged
+		   )
+	Q_PROPERTY(double labelsAmount
+		   READ getLabelsAmount
+		   WRITE setLabelsAmount
+		   NOTIFY labelsAmountChanged
+		   )
+	Q_PROPERTY(double hintsAmount
+		   READ getHintsAmount
+		   WRITE setHintsAmount
+		   NOTIFY hintsAmountChanged
+		   )
+	Q_PROPERTY(bool flagDesignationLabels
+		   READ getDesignationUsage
+		   WRITE setDesignationUsage
+		   NOTIFY designationUsageChanged
+		   )
+	// Colors
+	Q_PROPERTY(Vec3f labelsColor
+		   READ getLabelsColor
+		   WRITE setLabelsColor
+		   NOTIFY labelsColorChanged
+		   )
+	Q_PROPERTY(Vec3f circlesColor
+		   READ getCirclesColor
+		   WRITE setCirclesColor
+		   NOTIFY circlesColorChanged
+		   )
+	Q_PROPERTY(Vec3f galaxiesColor
+		   READ getGalaxyColor
+		   WRITE setGalaxyColor
+		   NOTIFY galaxiesColorChanged
+		   )
+	Q_PROPERTY(Vec3f activeGalaxiesColor
+		   READ getActiveGalaxyColor
+		   WRITE setActiveGalaxyColor
+		   NOTIFY activeGalaxiesColorChanged
+		   )
+	Q_PROPERTY(Vec3f radioGalaxiesColor
+		   READ getRadioGalaxyColor
+		   WRITE setRadioGalaxyColor
+		   NOTIFY radioGalaxiesColorChanged
+		   )
+	Q_PROPERTY(Vec3f interactingGalaxiesColor
+		   READ getInteractingGalaxyColor
+		   WRITE setInteractingGalaxyColor
+		   NOTIFY interactingGalaxiesColorChanged
+		   )
+	Q_PROPERTY(Vec3f quasarsColor
+		   READ getQuasarColor
+		   WRITE setQuasarColor
+		   NOTIFY quasarsColorChanged
+		   )
+	Q_PROPERTY(Vec3f possibleQuasarsColor
+		   READ getPossibleQuasarColor
+		   WRITE setPossibleQuasarColor
+		   NOTIFY possibleQuasarsColorChanged
+		   )
+	Q_PROPERTY(Vec3f clustersColor
+		   READ getClusterColor
+		   WRITE setClusterColor
+		   NOTIFY clustersColorChanged
+		   )
+	Q_PROPERTY(Vec3f openClustersColor
+		   READ getOpenClusterColor
+		   WRITE setOpenClusterColor
+		   NOTIFY openClustersColorChanged
+		   )
+	Q_PROPERTY(Vec3f globularClustersColor
+		   READ getGlobularClusterColor
+		   WRITE setGlobularClusterColor
+		   NOTIFY globularClustersColorChanged
+		   )
+	Q_PROPERTY(Vec3f stellarAssociationsColor
+		   READ getStellarAssociationColor
+		   WRITE setStellarAssociationColor
+		   NOTIFY stellarAssociationsColorChanged
+		   )
+	Q_PROPERTY(Vec3f starCloudsColor
+		   READ getStarCloudColor
+		   WRITE setStarCloudColor
+		   NOTIFY starCloudsColorChanged
+		   )
+	Q_PROPERTY(Vec3f starsColor
+		   READ getStarColor
+		   WRITE setStarColor
+		   NOTIFY starsColorChanged
+		   )
+	Q_PROPERTY(Vec3f nebulaeColor
+		   READ getNebulaColor
+		   WRITE setNebulaColor
+		   NOTIFY nebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f planetaryNebulaeColor
+		   READ getPlanetaryNebulaColor
+		   WRITE setPlanetaryNebulaColor
+		   NOTIFY planetaryNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f darkNebulaeColor
+		   READ getDarkNebulaColor
+		   WRITE setDarkNebulaColor
+		   NOTIFY darkNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f reflectionNebulaeColor
+		   READ getReflectionNebulaColor
+		   WRITE setReflectionNebulaColor
+		   NOTIFY reflectionNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f bipolarNebulaeColor
+		   READ getBipolarNebulaColor
+		   WRITE setBipolarNebulaColor
+		   NOTIFY bipolarNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f emissionNebulaeColor
+		   READ getEmissionNebulaColor
+		   WRITE setEmissionNebulaColor
+		   NOTIFY emissionNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f possiblePlanetaryNebulaeColor
+		   READ getPossiblePlanetaryNebulaColor
+		   WRITE setPossiblePlanetaryNebulaColor
+		   NOTIFY possiblePlanetaryNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f protoplanetaryNebulaeColor
+		   READ getProtoplanetaryNebulaColor
+		   WRITE setProtoplanetaryNebulaColor
+		   NOTIFY protoplanetaryNebulaeColorChanged
+		   )
+	Q_PROPERTY(Vec3f clusterWithNebulosityColor
+		   READ getClusterWithNebulosityColor
+		   WRITE setClusterWithNebulosityColor
+		   NOTIFY clusterWithNebulosityColorChanged
+		   )
+	Q_PROPERTY(Vec3f hydrogenRegionsColor
+		   READ getHydrogenRegionColor
+		   WRITE setHydrogenRegionColor
+		   NOTIFY hydrogenRegionsColorChanged
+		   )
+	Q_PROPERTY(Vec3f interstellarMatterColor
+		   READ getInterstellarMatterColor
+		   WRITE setInterstellarMatterColor
+		   NOTIFY interstellarMatterColorChanged
+		   )
+	Q_PROPERTY(Vec3f emissionObjectsColor
+		   READ getEmissionObjectColor
+		   WRITE setEmissionObjectColor
+		   NOTIFY emissionObjectsColorChanged
+		   )
+	Q_PROPERTY(Vec3f molecularCloudsColor
+		   READ getMolecularCloudColor
+		   WRITE setMolecularCloudColor
+		   NOTIFY molecularCloudsColorChanged
+		   )
+	Q_PROPERTY(Vec3f blLacObjectsColor
+		   READ getBlLacObjectColor
+		   WRITE setBlLacObjectColor
+		   NOTIFY blLacObjectsColorChanged
+		   )
+	Q_PROPERTY(Vec3f blazarsColor
+		   READ getBlazarColor
+		   WRITE setBlazarColor
+		   NOTIFY blazarsColorChanged
+		   )
+	Q_PROPERTY(Vec3f youngStellarObjectsColor
+		   READ getYoungStellarObjectColor
+		   WRITE setYoungStellarObjectColor
+		   NOTIFY youngStellarObjectsColorChanged
+		   )
+	Q_PROPERTY(Vec3f supernovaRemnantsColor
+		   READ getSupernovaRemnantColor
+		   WRITE setSupernovaRemnantColor
+		   NOTIFY supernovaRemnantsColorChanged
+		   )
 
 public:
 	NebulaMgr();
@@ -94,18 +292,12 @@ public:
 	//! @param name The case in-sensistive standard program name
 	virtual StelObjectP searchByName(const QString& name) const;
 
-	//! Find and return the list of at most maxNbItem objects auto-completing the passed object I18n name.
-	//! @param objPrefix the case insensitive first letters of the searched object
-	//! @param maxNbItem the maximum number of returned object names
-	//! @param useStartOfWords the autofill mode for returned objects names
-	//! @return a list of matching object name by order of relevance, or an empty list if nothing match
-	virtual QStringList listMatchingObjectsI18n(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false) const;
 	//! Find and return the list of at most maxNbItem objects auto-completing the passed object English name.
 	//! @param objPrefix the case insensitive first letters of the searched object
 	//! @param maxNbItem the maximum number of returned object names
 	//! @param useStartOfWords the autofill mode for returned objects names
 	//! @return a list of matching object name by order of relevance, or an empty list if nothing match
-	virtual QStringList listMatchingObjects(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false) const;
+	virtual QStringList listMatchingObjects(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false, bool inEnglish=false) const;
 	//! @note Loading deep-sky objects with the proper names only.
 	virtual QStringList listAllObjects(bool inEnglish) const;
 	virtual QStringList listAllObjectsByType(const QString& objType, bool inEnglish) const;
@@ -113,18 +305,26 @@ public:
 
 	//! Compute the maximum magntiude for which hints will be displayed.
 	float computeMaxMagHint(const class StelSkyDrawer* skyDrawer) const;
-	
-	void setCatalogFilters(const Nebula::CatalogGroup& cflags);
-	const Nebula::CatalogGroup& getCatalogFilters() const { return Nebula::catalogFilters; }
-
-	void setTypeFilters(const Nebula::TypeGroup& tflags) { Nebula::typeFilters=tflags; }
-	const Nebula::TypeGroup& getTypeFilters() const { return Nebula::typeFilters; }
 
 	bool objectInDisplayedCatalog(NebulaP n);
+
+	//! Get designation for latest selected DSO with priority
+	//! @note using for bookmarks feature as example
+	//! @return a designation
+	QString getLatestSelectedDSODesignation();
+
+	//! Get the list of all the bodies of the solar system.
+	const QVector<NebulaP>& getAllDeepSkyObjects() const { return dsoArray; }
 
 	///////////////////////////////////////////////////////////////////////////
 	// Properties setters and getters
 public slots:
+	void setCatalogFilters(Nebula::CatalogGroup cflags);
+	Nebula::CatalogGroup getCatalogFilters() const { return Nebula::catalogFilters; }
+
+	void setTypeFilters(Nebula::TypeGroup tflags);
+	Nebula::TypeGroup getTypeFilters() const { return Nebula::typeFilters; }
+
 	//! Set the default color used to draw the nebula symbols (default circles, etc).
 	//! @param c The color of the nebula symbols
 	//! @code
@@ -133,7 +333,7 @@ public slots:
 	//! @endcode
 	void setCirclesColor(const Vec3f& c);
 	//! Get current value of the nebula circle color.
-	const Vec3f& getCirclesColor(void) const;
+	const Vec3f getCirclesColor(void) const;
 
 	//! Set the color used to draw the galaxy symbols (ellipses).
 	//! @param c The color of the galaxy symbols
@@ -143,7 +343,7 @@ public slots:
 	//! @endcode
 	void setGalaxyColor(const Vec3f& c);
 	//! Get current value of the galaxy symbol color.
-	const Vec3f& getGalaxyColor(void) const;
+	const Vec3f getGalaxyColor(void) const;
 
 	//! Set the color used to draw the active galaxy symbols (ellipses).
 	//! @param c The color of the active galaxy symbols
@@ -153,7 +353,7 @@ public slots:
 	//! @endcode
 	void setActiveGalaxyColor(const Vec3f& c);
 	//! Get current value of the active galaxy symbol color.
-	const Vec3f& getActiveGalaxyColor(void) const;
+	const Vec3f getActiveGalaxyColor(void) const;
 
 	//! Set the color used to draw the interacting galaxy symbols (ellipses).
 	//! @param c The color of the interacting galaxy symbols
@@ -163,7 +363,7 @@ public slots:
 	//! @endcode
 	void setInteractingGalaxyColor(const Vec3f& c);
 	//! Get current value of the interacting galaxy symbol color.
-	const Vec3f& getInteractingGalaxyColor(void) const;
+	const Vec3f getInteractingGalaxyColor(void) const;
 
 	//! Set the color used to draw the radio galaxy symbols (ellipses).
 	//! @param c The color of the radio galaxy symbols
@@ -173,7 +373,7 @@ public slots:
 	//! @endcode
 	void setRadioGalaxyColor(const Vec3f& c);
 	//! Get current value of the radio galaxy symbol color.
-	const Vec3f& getRadioGalaxyColor(void) const;
+	const Vec3f getRadioGalaxyColor(void) const;
 
 	//! Set the color used to draw the quasars symbols (ellipses).
 	//! @param c The color of the quasars symbols
@@ -183,7 +383,7 @@ public slots:
 	//! @endcode
 	void setQuasarColor(const Vec3f& c);
 	//! Get current value of the quasar symbol color.
-	const Vec3f& getQuasarColor(void) const;
+	const Vec3f getQuasarColor(void) const;
 
 	//! Set the color used to draw the bright nebula symbols (emission nebula boxes, planetary nebulae circles).
 	//! @param c The color of the nebula symbols
@@ -195,7 +395,7 @@ public slots:
 	void setBrightNebulaColor(const Vec3f& c);
 	//! Get current value of the nebula circle color.
 	//! @deprecated
-	const Vec3f& getBrightNebulaColor(void) const;
+	const Vec3f getBrightNebulaColor(void) const;
 
 	//! Set the color used to draw the bright nebula symbols (emission nebula boxes, planetary nebulae circles).
 	//! @param c The color of the nebula symbols
@@ -205,7 +405,7 @@ public slots:
 	//! @endcode
 	void setNebulaColor(const Vec3f& c);
 	//! Get current value of the nebula circle color.
-	const Vec3f& getNebulaColor(void) const;
+	const Vec3f getNebulaColor(void) const;
 
 	//! Set the color used to draw the planetary nebulae symbols.
 	//! @param c The color of the planetary nebulae symbols
@@ -215,7 +415,7 @@ public slots:
 	//! @endcode
 	void setPlanetaryNebulaColor(const Vec3f& c);
 	//! Get current value of the planetary nebula circle color.
-	const Vec3f& getPlanetaryNebulaColor(void) const;
+	const Vec3f getPlanetaryNebulaColor(void) const;
 
 	//! Set the color used to draw the reflection nebulae symbols.
 	//! @param c The color of the reflection nebulae symbols
@@ -225,7 +425,7 @@ public slots:
 	//! @endcode
 	void setReflectionNebulaColor(const Vec3f& c);
 	//! Get current value of the reflection nebula circle color.
-	const Vec3f& getReflectionNebulaColor(void) const;
+	const Vec3f getReflectionNebulaColor(void) const;
 
 	//! Set the color used to draw the bipolar nebulae symbols.
 	//! @param c The color of the bipolar nebulae symbols
@@ -235,7 +435,7 @@ public slots:
 	//! @endcode
 	void setBipolarNebulaColor(const Vec3f& c);
 	//! Get current value of the bipolar nebula circle color.
-	const Vec3f& getBipolarNebulaColor(void) const;
+	const Vec3f getBipolarNebulaColor(void) const;
 
 	//! Set the color used to draw the emission nebulae symbols.
 	//! @param c The color of the emission nebulae symbols
@@ -245,7 +445,7 @@ public slots:
 	//! @endcode
 	void setEmissionNebulaColor(const Vec3f& c);
 	//! Get current value of the emission nebula circle color.
-	const Vec3f& getEmissionNebulaColor(void) const;
+	const Vec3f getEmissionNebulaColor(void) const;
 
 	//! Set the color used to draw the ionized hydrogen region symbols.
 	//! @param c The color of the ionized hydrogen region symbols
@@ -255,7 +455,7 @@ public slots:
 	//! @endcode
 	void setHydrogenRegionColor(const Vec3f& c);
 	//! Get current value of the hydrogen region symbol color.
-	const Vec3f& getHydrogenRegionColor(void) const;
+	const Vec3f getHydrogenRegionColor(void) const;
 
 	//! Set the color used to draw the supernova remnant symbols.
 	//! @param c The color of the supernova remnant symbols
@@ -265,7 +465,7 @@ public slots:
 	//! @endcode
 	void setSupernovaRemnantColor(const Vec3f& c);
 	//! Get current value of the supernova remnant symbol color.
-	const Vec3f& getSupernovaRemnantColor(void) const;
+	const Vec3f getSupernovaRemnantColor(void) const;
 
 	//! Set the color used to draw the interstellar matter symbols.
 	//! @param c The color of the interstellar matter symbols
@@ -275,7 +475,7 @@ public slots:
 	//! @endcode
 	void setInterstellarMatterColor(const Vec3f& c);
 	//! Get current value of the interstellar matter symbol color.
-	const Vec3f& getInterstellarMatterColor(void) const;
+	const Vec3f getInterstellarMatterColor(void) const;
 
 	//! Set the color used to draw the dark nebula symbols (gray boxes).
 	//! @param c The color of the dark nebula symbols
@@ -285,7 +485,7 @@ public slots:
 	//! @endcode
 	void setDarkNebulaColor(const Vec3f& c);
 	//! Get current value of the dark nebula color.
-	const Vec3f& getDarkNebulaColor(void) const;
+	const Vec3f getDarkNebulaColor(void) const;
 
 	//! Set the color used to draw the cluster associated with nebulosity symbols.
 	//! @param c The color of the cluster associated with nebulosity symbols
@@ -295,7 +495,7 @@ public slots:
 	//! @endcode
 	void setClusterWithNebulosityColor(const Vec3f& c);
 	//! Get current value of the cluster associated with nebulosity color.
-	const Vec3f& getClusterWithNebulosityColor(void) const;
+	const Vec3f getClusterWithNebulosityColor(void) const;
 
 	//! Set the color used to draw the star cluster symbols (Open/Globular).
 	//! @param c The color of the cluster symbols
@@ -305,7 +505,7 @@ public slots:
 	//! @endcode
 	void setClusterColor(const Vec3f& c);
 	//! Get current value of the star cluster symbol color.
-	const Vec3f& getClusterColor(void) const;
+	const Vec3f getClusterColor(void) const;
 
 	//! Set the color used to draw the open star cluster symbols.
 	//! @param c The color of the open star cluster symbols
@@ -315,7 +515,7 @@ public slots:
 	//! @endcode
 	void setOpenClusterColor(const Vec3f& c);
 	//! Get current value of the open star cluster symbol color.
-	const Vec3f& getOpenClusterColor(void) const;
+	const Vec3f getOpenClusterColor(void) const;
 
 	//! Set the color used to draw the globular star cluster symbols.
 	//! @param c The color of the globular star cluster symbols
@@ -325,7 +525,7 @@ public slots:
 	//! @endcode
 	void setGlobularClusterColor(const Vec3f& c);
 	//! Get current value of the globular star cluster symbol color.
-	const Vec3f& getGlobularClusterColor(void) const;
+	const Vec3f getGlobularClusterColor(void) const;
 
 	//! Set the color used to draw the stellar associations symbols.
 	//! @param c The color of the stellar associations symbols
@@ -335,7 +535,7 @@ public slots:
 	//! @endcode
 	void setStellarAssociationColor(const Vec3f& c);
 	//! Get current value of the stellar association symbol color.
-	const Vec3f& getStellarAssociationColor(void) const;
+	const Vec3f getStellarAssociationColor(void) const;
 
 	//! Set the color used to draw the star clouds symbols.
 	//! @param c The color of the star clouds symbols
@@ -345,7 +545,7 @@ public slots:
 	//! @endcode
 	void setStarCloudColor(const Vec3f& c);
 	//! Get current value of the star cloud symbol color.
-	const Vec3f& getStarCloudColor(void) const;
+	const Vec3f getStarCloudColor(void) const;
 
 	//! Set the color used to draw the emission objects symbols.
 	//! @param c The color of the emission objects symbols
@@ -355,7 +555,7 @@ public slots:
 	//! @endcode
 	void setEmissionObjectColor(const Vec3f& c);
 	//! Get current value of the emission object symbol color.
-	const Vec3f& getEmissionObjectColor(void) const;
+	const Vec3f getEmissionObjectColor(void) const;
 
 	//! Set the color used to draw the BL Lac objects symbols.
 	//! @param c The color of the BL Lac objects symbols
@@ -365,7 +565,7 @@ public slots:
 	//! @endcode
 	void setBlLacObjectColor(const Vec3f& c);
 	//! Get current value of the BL Lac object symbol color.
-	const Vec3f& getBlLacObjectColor(void) const;
+	const Vec3f getBlLacObjectColor(void) const;
 
 	//! Set the color used to draw the blazars symbols.
 	//! @param c The color of the blazars symbols
@@ -375,7 +575,7 @@ public slots:
 	//! @endcode
 	void setBlazarColor(const Vec3f& c);
 	//! Get current value of the blazar symbol color.
-	const Vec3f& getBlazarColor(void) const;
+	const Vec3f getBlazarColor(void) const;
 
 	//! Set the color used to draw the molecular clouds symbols.
 	//! @param c The color of the molecular clouds symbols
@@ -385,7 +585,7 @@ public slots:
 	//! @endcode
 	void setMolecularCloudColor(const Vec3f& c);
 	//! Get current value of the molecular cloud symbol color.
-	const Vec3f& getMolecularCloudColor(void) const;
+	const Vec3f getMolecularCloudColor(void) const;
 
 	//! Set the color used to draw the young stellar objects symbols.
 	//! @param c The color of the young stellar objects symbols
@@ -395,7 +595,7 @@ public slots:
 	//! @endcode
 	void setYoungStellarObjectColor(const Vec3f& c);
 	//! Get current value of the young stellar object symbol color.
-	const Vec3f& getYoungStellarObjectColor(void) const;
+	const Vec3f getYoungStellarObjectColor(void) const;
 
 	//! Set the color used to draw the possible quasars symbols.
 	//! @param c The color of the possible quasars symbols
@@ -405,7 +605,7 @@ public slots:
 	//! @endcode
 	void setPossibleQuasarColor(const Vec3f& c);
 	//! Get current value of the possible quasar symbol color.
-	const Vec3f& getPossibleQuasarColor(void) const;
+	const Vec3f getPossibleQuasarColor(void) const;
 
 	//! Set the color used to draw the possible planetary nebulae symbols.
 	//! @param c The color of the possible planetary nebulae symbols
@@ -415,7 +615,7 @@ public slots:
 	//! @endcode
 	void setPossiblePlanetaryNebulaColor(const Vec3f& c);
 	//! Get current value of the possible planetary nebula symbol color.
-	const Vec3f& getPossiblePlanetaryNebulaColor(void) const;
+	const Vec3f getPossiblePlanetaryNebulaColor(void) const;
 
 	//! Set the color used to draw the protoplanetary nebulae symbols.
 	//! @param c The color of the protoplanetary nebulae symbols
@@ -425,7 +625,7 @@ public slots:
 	//! @endcode
 	void setProtoplanetaryNebulaColor(const Vec3f& c);
 	//! Get current value of the protoplanetary nebula symbol color.
-	const Vec3f& getProtoplanetaryNebulaColor(void) const;
+	const Vec3f getProtoplanetaryNebulaColor(void) const;
 
 	//! Set the color used to draw the stars symbols.
 	//! @param c The color of the stars symbols
@@ -435,19 +635,14 @@ public slots:
 	//! @endcode
 	void setStarColor(const Vec3f& c);
 	//! Get current value of the star symbol color.
-	const Vec3f& getStarColor(void) const;
-
-	//! Set Nebulae Hints circle scale.
-	void setCircleScale(float scale);
-	//! Get Nebulae Hints circle scale.
-	float getCircleScale(void) const;
+	const Vec3f getStarColor(void) const;
 
 	//! Set how long it takes for nebula hints to fade in and out when turned on and off.
 	//! @param duration given in seconds
 	void setHintsFadeDuration(float duration) {hintsFader.setDuration((int) (duration * 1000.f));}
 
 	//! Set flag for displaying Nebulae Hints.
-	void setFlagHints(bool b) {hintsFader=b;}
+	void setFlagHints(bool b) { if (hintsFader!=b) { hintsFader=b; emit flagHintsDisplayedChanged(b);}}
 	//! Get flag for displaying Nebulae Hints.
 	bool getFlagHints(void) const {return hintsFader;}
 
@@ -456,8 +651,13 @@ public slots:
 	//! Get whether hints (symbols) are scaled according to nebula size.
 	bool getHintsProportional(void) const;
 
+	//! Set flag for usage designations of DSO for their labels instead common names.
+	void setDesignationUsage(const bool flag);
+	//! Get flag for usage designations of DSO for their labels instead common names.
+	bool getDesignationUsage(void) const;
+
 	//! Set whether hints (symbols) should be visible according to surface brightness value.
-	void setFlagSurfaceBrightnessUsage(const bool usage) { Nebula::surfaceBrightnessUsage=usage; }
+	void setFlagSurfaceBrightnessUsage(const bool usage) {if(usage!=Nebula::surfaceBrightnessUsage){ Nebula::surfaceBrightnessUsage=usage; emit flagSurfaceBrightnessUsageChanged(usage);}}
 	//! Get whether hints (symbols) are visible according to surface brightness value.
 	bool getFlagSurfaceBrightnessUsage(void) const { return Nebula::surfaceBrightnessUsage; }
 
@@ -467,9 +667,9 @@ public slots:
 	bool getFlagShow(void) const { return flagShow; }
 
 	//! Set flag used to turn on and off DSO type filtering.
-	void setFlagTypeFiltersUsage(bool b) { Nebula::flagUsageTypeFilter=b; }
+	void setFlagUseTypeFilters(bool b) { if (Nebula::flagUseTypeFilters!=b) { Nebula::flagUseTypeFilters=b; emit flagUseTypeFiltersChanged(b);}}
 	//! Get value of flag used to turn on and off DSO type filtering.
-	bool getFlagTypeFiltersUsage(void) const { return Nebula::flagUsageTypeFilter; }
+	bool getFlagUseTypeFilters(void) const { return Nebula::flagUseTypeFilters; }
 
 	//! Set the color used to draw nebula labels.
 	//! @param c The color of the nebula labels
@@ -479,34 +679,81 @@ public slots:
 	//! @endcode
 	void setLabelsColor(const Vec3f& c);
 	//! Get current value of the nebula label color.
-	const Vec3f& getLabelsColor(void) const;
+	const Vec3f getLabelsColor(void) const;
 
 	//! Set the amount of nebulae labels. The real amount is also proportional with FOV.
 	//! The limit is set in function of the nebulae magnitude
 	//! @param a the amount between 0 and 10. 0 is no labels, 10 is maximum of labels
-	void setLabelsAmount(float a) {labelsAmount=a;}
+	void setLabelsAmount(double a) {if(a!=labelsAmount){labelsAmount=a; emit labelsAmountChanged(a);}}
 	//! Get the amount of nebulae labels. The real amount is also proportional with FOV.
 	//! @return the amount between 0 and 10. 0 is no labels, 10 is maximum of labels
-	float getLabelsAmount(void) const {return labelsAmount;}
+	double getLabelsAmount(void) const {return labelsAmount;}
 
 	//! Set the amount of nebulae hints. The real amount is also proportional with FOV.
 	//! The limit is set in function of the nebulae magnitude
 	//! @param f the amount between 0 and 10. 0 is no hints, 10 is maximum of hints
-	void setHintsAmount(float f) {hintsAmount = f;}
+	void setHintsAmount(double f) {if(hintsAmount!=f){hintsAmount = f; emit hintsAmountChanged(f);}}
 	//! Get the amount of nebulae labels. The real amount is also proportional with FOV.
 	//! @return the amount between 0 and 10. 0 is no hints, 10 is maximum of hints
-	float getHintsAmount(void) const {return hintsAmount;}
+	double getHintsAmount(void) const {return hintsAmount;}
+
+signals:
+	//! Emitted when hints are toggled.
+	void flagHintsDisplayedChanged(bool b);
+	//! Emitted when filter types are changed.
+	void flagUseTypeFiltersChanged(bool b);
+	//! Emitted when the catalog filter is changed
+	void catalogFiltersChanged(Nebula::CatalogGroup flags);
+	//! Emitted when the type filter is changed
+	void typeFiltersChanged(Nebula::TypeGroup flags);
+	void hintsProportionalChanged(bool b);
+	void designationUsageChanged(bool b);
+	void flagSurfaceBrightnessUsageChanged(bool b);
+	void labelsAmountChanged(double a);
+	void hintsAmountChanged(double f);
+
+	void labelsColorChanged(const Vec3f & color) const;
+	void circlesColorChanged(const Vec3f & color) const;
+	void galaxiesColorChanged(const Vec3f & color) const;
+	void activeGalaxiesColorChanged(const Vec3f & color) const;
+	void radioGalaxiesColorChanged(const Vec3f & color) const;
+	void interactingGalaxiesColorChanged(const Vec3f & color) const;
+	void quasarsColorChanged(const Vec3f & color) const;
+	void possibleQuasarsColorChanged(const Vec3f & color) const;
+	void clustersColorChanged(const Vec3f & color) const;
+	void openClustersColorChanged(const Vec3f & color) const;
+	void globularClustersColorChanged(const Vec3f & color) const;
+	void stellarAssociationsColorChanged(const Vec3f & color) const;
+	void starCloudsColorChanged(const Vec3f & color) const;
+	void starsColorChanged(const Vec3f & color) const;
+	void nebulaeColorChanged(const Vec3f & color) const;
+	void planetaryNebulaeColorChanged(const Vec3f & color) const;
+	void darkNebulaeColorChanged(const Vec3f & color) const;
+	void reflectionNebulaeColorChanged(const Vec3f & color) const;
+	void bipolarNebulaeColorChanged(const Vec3f & color) const;
+	void emissionNebulaeColorChanged(const Vec3f & color) const;
+	void possiblePlanetaryNebulaeColorChanged(const Vec3f & color) const;
+	void protoplanetaryNebulaeColorChanged(const Vec3f & color) const;
+	void clusterWithNebulosityColorChanged(const Vec3f & color) const;
+	void hydrogenRegionsColorChanged(const Vec3f & color) const;
+	void interstellarMatterColorChanged(const Vec3f & color) const;
+	void emissionObjectsColorChanged(const Vec3f & color) const;
+	void molecularCloudsColorChanged(const Vec3f & color) const;
+	void blLacObjectsColorChanged(const Vec3f & color) const;
+	void blazarsColorChanged(const Vec3f & color) const;
+	void youngStellarObjectsColorChanged(const Vec3f & color) const;
+	void supernovaRemnantsColorChanged(const Vec3f & color) const;
 
 private slots:
-	//! Sets the colors of the Nebula labels and markers according to the
-	//! values in a configuration object
-	void setStelStyle(const QString& section);
-
 	//! Update i18 names from English names according to passed translator.
 	//! The translation is done using gettext with translated strings defined
 	//! in translations.h
 	void updateI18n();
 	
+	//! Called when the sky culture is updated.
+	//! Loads native names of deep-sky objects for a given sky culture.
+	//! @param skyCultureDir the name of the directory containing the sky culture to use.
+	void updateSkyCulture(const QString& skyCultureDir);
 
 private:
 
@@ -560,9 +807,9 @@ private:
 	StelSphericalIndex nebGrid;
 
 	//! The amount of hints (between 0 and 10)
-	float hintsAmount;
+	double hintsAmount;
 	//! The amount of labels (between 0 and 10)
-	float labelsAmount;
+	double labelsAmount;
 
 	//! The selection pointer texture
 	StelTextureSP texPointer;

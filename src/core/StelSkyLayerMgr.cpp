@@ -69,6 +69,7 @@ void StelSkyLayerMgr::init()
 		qWarning() << "ERROR while loading nebula texture set default";
 	else
 		insertSkyImage(path);
+
 	QSettings* conf = StelApp::getInstance().getSettings();
 	conf->beginGroup("skylayers");
 	foreach (const QString& key, conf->childKeys())
@@ -85,7 +86,7 @@ void StelSkyLayerMgr::init()
 	conf->endGroup();
 
 	setFlagShow(!conf->value("astro/flag_nebula_display_no_texture", false).toBool());
-	addAction("actionShow_DSS", N_("Display Options"), N_("Deep-sky objects background images"), "visible", "I");
+	addAction("actionShow_DSS", N_("Display Options"), N_("Deep-sky objects background images"), "flagShow", "I");
 }
 
 QString StelSkyLayerMgr::insertSkyLayer(StelSkyLayerP tile, const QString& keyHint, bool ashow)
@@ -383,15 +384,19 @@ bool StelSkyLayerMgr::loadSkyImageAltAz(const QString& id, const QString& filena
 void StelSkyLayerMgr::showLayer(const QString& id, bool b)
 {
 	if (allSkyLayers.contains(id))
-		if (allSkyLayers.value(id)!=NULL)
+	{
+		if (allSkyLayers[id]!=NULL)
 			allSkyLayers[id]->show = b;
+	}
 }
 
 bool StelSkyLayerMgr::getShowLayer(const QString& id) const
 {
 	if (allSkyLayers.contains(id))
-		if (allSkyLayers.value(id)!=NULL)
-			return allSkyLayers.value(id)->show;
+	{
+		if (allSkyLayers[id]!=NULL)
+			return allSkyLayers[id]->show;
+	}
 	return false;
 }
 

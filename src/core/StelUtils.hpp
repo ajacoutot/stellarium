@@ -49,6 +49,9 @@ namespace StelUtils
 	//! Return the name and the version of operating system, i.e. "Mac OS X 10.7"
 	QString getOperatingSystemInfo();
 
+	//! Return the user agent name, i.e. "Stellarium/0.15.0 (Linux)"
+	QString getUserAgentString();
+
 	//! Convert an angle in hms format to radian.
 	//! @param h hour component
 	//! @param m minute component
@@ -228,7 +231,7 @@ namespace StelUtils
 	void getDateFromJulianDay(const double julianDay, int *year, int *month, int *day);
 
 	//! Make from julianDay an hour, minute, second.
-	void getTimeFromJulianDay(const double julianDay, int *hour, int *minute, int *second);
+	void getTimeFromJulianDay(const double julianDay, int *hour, int *minute, int *second, int *millis=NULL);
 
 	//! Parse an ISO8601 date string.
 	//! Also handles negative and distant years.
@@ -236,7 +239,7 @@ namespace StelUtils
 	
 	//! Format the given Julian Day in (UTC) ISO8601 date string.
 	//! Also handles negative and distant years.
-	QString julianDayToISO8601String(const double jd);
+	QString julianDayToISO8601String(const double jd, bool addMS = false);
 
 	//! Return the Julian Date matching the ISO8601 date string.
 	//! Also handles negative and distant years.
@@ -265,9 +268,6 @@ namespace StelUtils
 	//! Convert a fraction of a Julian Day to a QTime
 	QTime jdFractionToQTime(const double jd);
 
-	//! Return number of hours offset from GMT, using Qt functions.
-	float getGMTShiftFromQT(const double jd);
-
 	//! Convert a QT QDateTime class to julian day.
 	//! @param dateTime the UTC QDateTime to convert
 	//! @result the matching decimal Julian Day
@@ -293,7 +293,7 @@ namespace StelUtils
 
 	int numberOfDaysInMonthInYear(const int month, const int year);
 	bool changeDateTimeForRollover(int oy, int om, int od, int oh, int omin, int os,
-					int* ry, int* rm, int* rd, int* rh, int* rmin, int* rs);
+				       int* ry, int* rm, int* rd, int* rh, int* rmin, int* rs);
 
 	//! Output a QVariantMap to qDebug().  Formats like a tree where there are nested objects.
 	void debugQVariantMap(const QVariant& m, const QString& indent="", const QString& key="");
@@ -604,14 +604,24 @@ namespace StelUtils
 	//! For adapting from -26 to -23.895, use -0.91072 * (-23.895 + 26.0) = -1.9170656
 	//! @param jDay the JD
 	//! @param ndot value n-dot which use in the algorithm
+	//! @param useDE43x Define if function should adapt calculation of the secular acceleration of the Moon to the DE43x ephemeris
 	//! @return SecularAcceleration in seconds
-	//! @note n-dot for secular acceleration of the Moon in ELP2000-82B is -23.8946 "/cy/cy
-	double getMoonSecularAcceleration(const double jDay, const double ndot);
+	//! @note n-dot for secular acceleration of the Moon in ELP2000-82B is -23.8946 "/cy/cy and for DE43x is -25.8 "/cy/cy
+	double getMoonSecularAcceleration(const double jDay, const double ndot, const bool useDE43x);
 
 	//! Get the standard error (sigma) for the value of DeltaT
 	//! @param jDay the JD
 	//! @return sigma in seconds
 	double getDeltaTStandardError(const double jDay);
+
+	//! Get value of the Moon fluctuation
+	//! Source: The Rotation of the Earth, and the Secular Accelerations of the Sun, Moon and Planets
+	//! Spencer Jones, H.
+	//! Monthly Notices of the Royal Astronomical Society, 99 (1939), 541-558
+	//! 1939MNRAS..99..541S [http://adsabs.harvard.edu/abs/1939MNRAS..99..541S]
+	//! @param jDay the JD
+	//! @return fluctuation in seconds
+	double getMoonFluctuation(const double jDay);
 
 	//! Sign function from http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c
 	template <typename T> int sign(T val)
@@ -646,6 +656,12 @@ namespace StelUtils
 	//! @param day
 	//! @return decimal year
 	double getDecYear(const int year, const int month, const int day);
+
+	//! Comparison two string versions and return a result in range -1,0,1
+	//! @param v1 string for version 1
+	//! @param v2 string for version 2
+	//! @return result (-1: v1<v2; 0: v1==v2; 1: v1>v2)
+	int compareVersions(const QString v1, const QString v2);
 
 	//! Uncompress gzip or zlib compressed data.
 	QByteArray uncompress(const QByteArray& data);

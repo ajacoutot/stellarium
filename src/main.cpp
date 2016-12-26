@@ -126,6 +126,9 @@ int main(int argc, char **argv)
 	}
 #endif
 
+	// Seed the PRNG
+	qsrand(QDateTime::currentMSecsSinceEpoch());
+
 	QCoreApplication::setApplicationName("stellarium");
 	QCoreApplication::setApplicationVersion(StelUtils::getApplicationVersion());
 	QCoreApplication::setOrganizationDomain("stellarium.org");
@@ -151,10 +154,6 @@ int main(int argc, char **argv)
 	QGuiApplication::setDesktopSettingsAware(false);
 	QGuiApplication app(argc, argv);
 #endif
-	QPixmap pixmap(":/splash.png");
-	QSplashScreen splash(pixmap);
-	splash.show();
-	app.processEvents();
 
 	// QApplication sets current locale, but
 	// we need scanf()/printf() and friends to always work in the C locale,
@@ -164,13 +163,26 @@ int main(int argc, char **argv)
 	// Init the file manager
 	StelFileMgr::init();
 
-	// Log command line arguments
+	QPixmap pixmap(StelFileMgr::findFile("data/splash.png"));
+	QSplashScreen splash(pixmap);
+	splash.show();
+	splash.showMessage(StelUtils::getApplicationVersion() , Qt::AlignLeft, Qt::white);
+	app.processEvents();
+
+	// Log command line arguments.
 	QString argStr;
 	QStringList argList;
 	for (int i=0; i<argc; ++i)
 	{
 		argList << argv[i];
 		argStr += QString("%1 ").arg(argv[i]);
+	}
+	// add contents of STEL_OPTS environment variable.
+	QString envStelOpts(qgetenv("STEL_OPTS").constData());
+	if (envStelOpts.length()>0)
+	{
+		argList+= envStelOpts.split(" ");
+		argStr += " " + envStelOpts;
 	}
 	// Parse for first set of CLI arguments - stuff we want to process before other
 	// output, such as --help and --version
@@ -311,7 +323,7 @@ int main(int argc, char **argv)
 	CLIProcessor::parseCLIArgsPostConfig(argList, confSettings);
 
 	// Support hi-dpi pixmaps
-	app.setAttribute(Qt::AA_UseHighDpiPixmaps);
+	app.setAttribute(Qt::AA_UseHighDpiPixmaps, true);	
 
 	// Add the DejaVu font that we use everywhere in the program
 	const QString& fName = StelFileMgr::findFile("data/DejaVuSans.ttf");

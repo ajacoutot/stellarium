@@ -51,7 +51,7 @@ class StelMainView : public QGraphicsView
 	friend class StelGuiItem;
 	friend class StelSkyItem;
 	Q_OBJECT
-	Q_PROPERTY(bool fullScreen READ isFullScreen WRITE setFullScreen)
+	Q_PROPERTY(bool fullScreen READ isFullScreen WRITE setFullScreen NOTIFY fullScreenChanged)
 
 public:
 	StelMainView(QWidget* parent = NULL);
@@ -79,8 +79,11 @@ public:
 	QPoint getMousePos();
 public slots:
 
-	//!	Set whether fullscreen is activated or not
+	//! Set whether fullscreen is activated or not
 	void setFullScreen(bool);
+
+	//! Set focus on the sky
+	void setFocusOnSky();
 
 	///////////////////////////////////////////////////////////////////////////
 	// Specific methods
@@ -153,12 +156,13 @@ signals:
 	//! doScreenshot() does the actual work (it has to do it in the main
 	//! thread, where as saveScreenShot() might get called from another one.
 	void screenshotRequested(void);
+	void fullScreenChanged(bool b);
 
 private slots:
 	// Do the actual screenshot generation in the main thread with this method.
 	void doScreenshot(void);
 	void minFpsChanged();
-	void updateNightModeProperty();
+	void updateNightModeProperty(bool b);
 
 private:
 	//! Start the display loop
