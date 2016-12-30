@@ -358,8 +358,8 @@ public slots:
 	//! Get the list of all the available projections
 	QStringList getAllProjectionTypeKeys() const;
 
-	//! Set the current algorithm for time correction (DeltaT)
-	void setCurrentDeltaTAlgorithm(DeltaTAlgorithm algorithm) { currentDeltaTAlgorithm=algorithm; }
+	//! Set the current algorithm and nDot used therein for time correction (DeltaT)
+	void setCurrentDeltaTAlgorithm(DeltaTAlgorithm algorithm);
 	//! Get the current algorithm for time correction (DeltaT)
 	DeltaTAlgorithm getCurrentDeltaTAlgorithm() const { return currentDeltaTAlgorithm; }
 	//! Get description of the current algorithm for time correction
@@ -454,6 +454,9 @@ public slots:
 	bool getUseDST() const;
 	void setUseDST(const bool b);
 
+	bool getUseCustomTimeZone(void) const;
+	void setUseCustomTimeZone(const bool b);
+
 	//! Set the current date in Modified Julian Day (UT).
 	//! MJD is simply JD-2400000.5, getting rid of large numbers and starting days at midnight.
 	//! It is mostly used in satellite contexts.
@@ -461,17 +464,21 @@ public slots:
 	//! Get the current date in Modified Julian Day (UT)
 	double getMJDay() const;
 
-	//! Compute Delta-T estimation for a given date.
+	//! Compute DeltaT estimation for a given date.
 	//! DeltaT is the accumulated effect of earth's rotation slowly getting slower, mostly caused by tidal braking by the Moon.
 	//! For accurate positioning of objects in the sky, we must compute earth-based clock-dependent things like earth rotation, hour angles etc.
 	//! using plain UT, but all orbital motions or rotation of the other planets must be computed in TT, which is a regular time frame.
 	//! Also satellites are computed in the UT frame because (1) they are short-lived and (2) must follow paths over earth ground.
-	//! (Note that we make no further difference between TT and DT, those are regarded equivalent for our purpose.)
+	//! (Note that we make no further difference between TT and DT, those might differ by milliseconds at best but are regarded equivalent for our purpose.)
 	//! @param JD the date and time expressed as a Julian Day
 	//! @return DeltaT in seconds
-	//! @note Thanks to Rob van Gent which create a collection from many formulas for calculation of Delta-T: http://www.staff.science.uu.nl/~gent0113/deltat/deltat.htm
+	//! @note Thanks to Rob van Gent who created a collection from many formulas for calculation of DeltaT: http://www.staff.science.uu.nl/~gent0113/deltat/deltat.htm
 	//! @note Use this only if needed, prefer calling getDeltaT() for access to the current value.
-	double computeDeltaT(const double JD) const;
+	//! @note Up to V0.15.1, if the requested year was outside validity range, we returned zero or some useless value.
+	//!       Starting with V0.15.2 the value from the edge of the defined range is returned instead if not explicitly zero is given in the source.
+	//!       Limits can be queried with getCurrentDeltaTAlgorithmValidRangeDescription()
+
+	double computeDeltaT(const double JD);
 	//! Get current DeltaT.
 	double getDeltaT() const;
 
@@ -648,21 +655,23 @@ public slots:
 	//! the selected object is of the correct type - i.e. a planet.
 	void moveObserverToSelected();
 
-	//! Set central year for custom equation for calculation of Delta-T
+	//! Set central year for custom equation for calculation of DeltaT
 	//! @param y the year, e.g. 1820
 	void setDeltaTCustomYear(float y) { deltaTCustomYear=y; }
-	//! Set n-dot for custom equation for calculation of Delta-T
+	//! Set n-dot for custom equation for calculation of DeltaT
 	//! @param v the n-dot value, e.g. -26.0
 	void setDeltaTCustomNDot(float v) { deltaTCustomNDot=v; }
-	//! Set coefficients for custom equation for calculation of Delta-T
+	//! Set coefficients for custom equation for calculation of DeltaT
 	//! @param c the coefficients, e.g. -20,0,32
 	void setDeltaTCustomEquationCoefficients(Vec3f c) { deltaTCustomEquationCoeff=c; }
 
-	//! Get central year for custom equation for calculation of Delta-T
+	//! Get central year for custom equation for calculation of DeltaT
 	float getDeltaTCustomYear() const { return deltaTCustomYear; }
-	//! Get n-dot for custom equation for calculation of Delta-T
+	//! Get n-dot for custom equation for calculation of DeltaT
 	float getDeltaTCustomNDot() const { return deltaTCustomNDot; }
-	//! Get coefficients for custom equation for calculation of Delta-T
+	//! Get n-dot for current DeltaT algorithm
+	float getDeltaTnDot() const { return deltaTnDot; }
+	//! Get coefficients for custom equation for calculation of DeltaT
 	Vec3f getDeltaTCustomEquationCoefficients() const { return deltaTCustomEquationCoeff; }
 
 	//! initialize ephemerides calculation functions
@@ -767,13 +776,19 @@ private:
 	double milliSecondsOfLastJDUpdate;    // Time in seconds when the time rate or time last changed
 	double jdOfLastJDUpdate;         // JD when the time rate or time last changed
 
-	QString currentTimeZone;
+	QString currentTimeZone;	
 	bool flagUseDST;
+	bool flagUseCTZ; // custom time zone
 
-	// Variables for custom equation of Delta-T
+	// Variables for equations of DeltaT
 	Vec3f deltaTCustomEquationCoeff;
 	float deltaTCustomNDot;
 	float deltaTCustomYear;
+	float deltaTnDot; // The currently applied nDot correction. (different per algorithm, and displayed in status line.)
+	bool  deltaTdontUseMoon; // true if the currenctly selected algorithm does not do a lunar correction (?????)
+	double (*deltaTfunc)(const double JD); // This is a function pointer which must be set to a function which computes DeltaT(JD).
+	int deltaTstart;   // begin year of validity range for the selected DeltaT algorithm. (SET INT_MIN to mark infinite)
+	int deltaTfinish;  // end   year of validity range for the selected DeltaT algorithm. (Set INT_MAX to mark infinite)
 
 	// Variables for DE430/431 ephem calculation
 	bool de430Available; // ephem file found

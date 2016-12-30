@@ -69,7 +69,12 @@ QString getUserAgentString()
 	if (platform.contains("OpenBSD"))
 		platform = "OpenBSD";
 
-	// Set user agent as "Stellarium/$version$ ($platform$)"
+	// Set user agent as "Stellarium/$version$ ($platform$; $CPU architecture$)"
+	#if QT_VERSION >= 0x050400
+	// TODO: Remove #ifdef when Qt 5.4 will set as minimal
+	platform.append("; " + QSysInfo::currentCpuArchitecture());
+	#endif
+
 	return QString("Stellarium/%1 (%2)").arg(StelUtils::getApplicationVersion()).arg(platform);
 }
 
@@ -156,6 +161,11 @@ QString getOperatingSystemInfo()
 		#if QT_VERSION >= 0x050500
 		case QSysInfo::MV_ELCAPITAN:
 			OS = "Mac OS X 10.11 series";
+			break;
+		#endif
+		#if QT_VERSION >= 0x050600
+		case QSysInfo::MV_SIERRA:
+			OS = "Mac OS X 10.12 series";
 			break;
 		#endif
 		default:
@@ -1297,7 +1307,16 @@ QString hoursToHmsStr(const double hours)
 //  1800.0=1800-jan-0.5=2378496.0
 //  1735.0=1735-jan-0.5=2354755.0
 //  1625.0=1625-jan-0.5=2314579.0
+//
+// Up to V0.15.1, if the requested year was outside validity range, we returned zero or some useless value.
+// Starting with V0.15.2 the value from the edge of the range is returned instead.
 */
+
+double getDeltaTwithoutCorrection(const double jDay)
+{
+	Q_UNUSED(jDay)
+	return 0.;
+}
 
 // Implementation of algorithm by Espenak & Meeus (2006) for DeltaT computation
 double getDeltaTByEspenakMeeus(const double jDay)
@@ -1466,10 +1485,11 @@ double getDeltaTByStephenson1997(const double jDay)
 	return -20.0 + 35.0*u*u;
 }
 
-// Implementation of algorithm by Schmadel & Zech (1979) for DeltaT computation
+// Implementation of algorithm by Schmadel & Zech (1979) for DeltaT computation. STRICTLY 1800...1975 ONLY!! Now delivers values for the edges.
 double getDeltaTBySchmadelZech1979(const double jDay)
 {
 	double u=(jDay-2415020.0)/36525.0; // (1900-jan-0.5)
+	u=qMax(-1.0, qMin(u, 0.76));  // Limit range to 1800...1975. Else we have crazy values which cause strange artefacts.
 	double deltaT=(((((((((((-0.089491*u -0.117389)*u + 0.185489)*u + 0.247433)*u - 0.159732)*u - 0.200097)*u + 0.075456)*u
 			+ 0.076929)*u - 0.020446)*u - 0.013867)*u + 0.003081)*u + 0.001233)*u -0.000029;
 	return deltaT * 86400.0;
@@ -1488,6 +1508,9 @@ double getDeltaTByStephensonMorrison1984(const double jDay)
 	int year, month, day;	
 	double deltaT = 0.;
 	getDateFromJulianDay(jDay, &year, &month, &day);
+
+	// Limited years!
+	year=qMax(-391, qMin(year, 1600));
 
 	double u = (getDecYear(year, month, day)-1800)/100;
 
@@ -1509,25 +1532,31 @@ double getDeltaTByStephensonMorrison1995(const double jDay)
 // Implementation of algorithm by Stephenson & Houlden (1986) for DeltaT computation
 double getDeltaTByStephensonHoulden(const double jDay)
 {
-	int year, month, day;
-	double u;
-	double deltaT = 0.;
-	getDateFromJulianDay(jDay, &year, &month, &day);
+	// TODO FIXME: GZ 2016-12: WHAT IS THIS?? Stephenson-Houlden 1986 has a different Formula!!
+//	int year, month, day;
+//	double u;
+//	double deltaT = 0.;
+//	getDateFromJulianDay(jDay, &year, &month, &day);
 
-	double yeardec=getDecYear(year, month, day);
+//	double yeardec=getDecYear(year, month, day);
+//	// Limited years!?
+//	year=qMax(-600, qMin(year, 1600));
 
-	if (year <= 948)
-	{
-		u = (yeardec-948)/100;
-		deltaT = (46.5*u -405.0)*u + 1830.0;
-	}
-	if (948 < year && year <= 1600)
-	{
-		u = (yeardec-1850)/100;
-		deltaT = 22.5*u*u;
-	}
+//	if (year <= 948)
+//	{
+//		u = (yeardec-948)/100;
+//		deltaT = (46.5*u -405.0)*u + 1830.0;
+//	}
+//	if (948 < year && year <= 1600)
+//	{
+//		u = (yeardec-1850)/100;
+//		deltaT = 22.5*u*u;
+//	}
+//	return deltaT;
+// This formula found in the cited book, page (ii), formula (1).
+	double T=(jDay-2415020.0)/36525; // centuries from J1900.0
 
-	return deltaT;
+	return (36.79*T+35.06)*T+4.87;
 }
 
 // Implementation of algorithm by Espenak (1987, 1989) for DeltaT computation
@@ -1545,10 +1574,11 @@ double getDeltaTByBorkowski(const double jDay)
 	return 40.0 + 35.0*u*u;
 }
 
-// Implementation of algorithm by Schmadel & Zech (1988) for DeltaT computation
+// Implementation of algorithm by Schmadel & Zech (1988) for DeltaT computation. STRICTLY 1800...1988 ONLY!! Now delivers values for the edges.
 double getDeltaTBySchmadelZech1988(const double jDay)
 {
 	double u=(jDay-2415020.0)/36525.0; // (1900-jan-0.5)
+	u=qMax(-1.0, qMin(u, 0.89));  // Limit range to 1800...1988. Else we have crazy values which cause strange artefacts.
 	double deltaT = (((((((((((-0.058091*u -0.067471)*u +.145932)*u +.161416)*u -.149279)*u -.146960)*u +.079441)*u +.062971)*u -.022542)*u -.012462)*u +.003357)*u +.001148)*u-.000014;
 	return deltaT * 86400.0;
 }
@@ -1559,6 +1589,9 @@ double getDeltaTByChaprontTouze(const double jDay)
 	int year, month, day;	
 	double deltaT = 0.;
 	getDateFromJulianDay(jDay, &year, &month, &day);
+
+	// Limited years!
+	year=qMax(-391, qMin(year, 1600));
 
 	double u=(jDay-2451545.0)/36525.0; // (2000-jan-1.5)
 
@@ -1577,6 +1610,9 @@ double getDeltaTByJPLHorizons(const double jDay)
 	double u;
 	double deltaT = 0.;
 	getDateFromJulianDay(jDay, &year, &month, &day);
+
+	// Limited years!
+	year=qMax(-2999, qMin(year, 1620));
 
 	if (-2999 < year && year < 948)
 	{
@@ -1706,49 +1742,41 @@ double getDeltaTByMeeusSimons(const double jDay)
 	else if (year < 1690)
 	{
 		u = 3.45 + ub;
-		//deltaT = +40.3 - 107.0*u + 50.0*std::pow(u,2) - 454.0*std::pow(u,3) + 1244.0*std::pow(u,4);
 		deltaT = (((1244.0*u -454.0)*u + 50.0)*u -107.0)*u +40.3;
 	}
 	else if (year < 1770)
 	{
 		u = 2.70 + ub;
-		//deltaT = +10.2 + 11.3*u - std::pow(u,2) - 16.0*std::pow(u,3) + 70.0*std::pow(u,4);
 		deltaT = (((70.0*u -16.0)*u -1.0)*u +11.3)*u +10.2;
 	}
 	else if (year < 1820)
 	{
 		u = 2.05 + ub;
-		//deltaT = +14.7 - 18.8*u - 22.0*std::pow(u,2) + 173.0*std::pow(u,3) + 6.0*std::pow(u,4);
 		deltaT = (((6.0*u +173.0)*u -22.0)*u -18.8)*u +14.7;
 	}
 	else if (year < 1870)
 	{
 		u = 1.55 + ub;
-		//deltaT = +5.7 + 12.7*u + 111.0*std::pow(u,2) - 534.0*std::pow(u,3) - 1654.0*std::pow(u,4);
 		deltaT = (((-1654.0*u -534.0)*u +111)*u +12.7)*u +5.7;
 	}
 	else if (year < 1900)
 	{
 		u = 1.15 + ub;
-		//deltaT = -5.8 - 14.6*u + 27.0*std::pow(u,2) + 101.0*std::pow(u,3) + 8234.0*std::pow(u,4);
 		deltaT = (((8234.0*u +101.0)*u +27.0)*u - 14.6)*u -5.8;
 	}
 	else if (year < 1940)
 	{
 		u = 0.80 + ub;
-		//deltaT = +21.4 + 67.0*u - 443.0*std::pow(u,2) + 19.0*std::pow(u,3) + 4441.0*std::pow(u,4);
 		deltaT = (((4441.0*u + 19.0)*u -443.0)*u +67.0)*u +21.4;
 	}
 	else if (year < 1990)
 	{
 		u = 0.35 + ub;
-		//deltaT = +36.2 + 74.0*u + 189.0*std::pow(u,2) - 140.0*std::pow(u,3) - 1883.0*std::pow(u,4);
 		deltaT = (((-1883.0*u -140.0)*u +189.0)*u +74.0)*u +36.2;
 	}
 	else if (year <= 2000)
 	{
 		u = 0.05 + ub;
-		//deltaT = +60.8 + 82.0*u - 188.0*std::pow(u,2) - 5034.0*std::pow(u,3);
 		deltaT = ((-5034.0*u -188.0)*u +82.0)*u +60.8;
 	}
 
@@ -1814,20 +1842,18 @@ double getDeltaTByBanjevic(const double jDay)
 
 	double u, c;
 
-	if (year>=-2020 && year<=-700)
+	// Limited years!
+	year=qMax(-2020, qMin(year, 1620));
+
+	if (year<=-700)
 	{
 		u = (jDay-2378496.0)/36525.0; // 1800.0=1800-jan-0.5=2378496.0
 		c = 30.86;
 	}
-	else if (year>-700 && year<=1620)
+	else //  if (year>-700 && year<=1620)
 	{
 		u = (jDay-2385800.0)/36525.0; // 1820.0=1820-jan-0.5=2385800.0
 		c = 31;
-	}
-	else
-	{
-		u = 0.;
-		c = 0.;
 	}
 
 	return c*u*u;
@@ -1838,10 +1864,14 @@ double getDeltaTByIslamSadiqQureshi(const double jDay)
 {
 	int year, month, day;
 	getDateFromJulianDay(jDay, &year, &month, &day);
-	double deltaT = 0.0; // Return deltaT = 0 outside valid range.
+	double deltaT; // Return deltaT for the edge year outside valid range.
 	double u;
 	const double ub=(jDay-2454101.0)/36525.0; // (2007-jan-0.5)
-	if (year >= 1620 && year <= 1698)
+
+	// Limited years!
+	year=qMax(1620, qMin(year, 2007));
+
+	if (year <= 1698)
 	{
 		u = 3.48 + ub;
 		deltaT = (((1162.805 * u - 273.116) * u + 14.523) * u - 105.262) * u + 38.067;
@@ -1867,7 +1897,7 @@ double getDeltaTByIslamSadiqQureshi(const double jDay)
 		u = 0.77 + ub;
 		deltaT = (((-390.785 * u + 901.514) * u - 88.044) * u + 8.997) * u + 24.006;
 	}
-	else if (year <= 2007)
+	else //if (year <= 2007)
 	{
 		// revised 2013 per email
 		u = 0.265 + ub;
@@ -1882,51 +1912,39 @@ double getDeltaTByKhalidSultanaZaidi(const double jDay)
 {
 	int year, month, day;
 	getDateFromJulianDay(jDay, &year, &month, &day);
-	double k, a0, a1, a2, a3, a4;
-	if (year>=1620 && year<=1672)
-	{
-		k = 3.670; a0 = 76.541; a1 = -253.532; a2 = 695.901; a3 = -1256.982; a4 = 627.152;
-	}
-	else if (year>=1673 && year<=1729)
-	{
-		k = 3.120; a0 = 10.872; a1 = -40.744; a2 = 236.890; a3 = -351.537; a4 = 36.612;
-	}
-	else if (year>=1730 && year<=1797)
-	{
-		k = 2.495; a0 = 13.480; a1 = 13.075; a2 = 8.635; a3 = -3.307; a4 = -128.294;
-	}
-	else if (year>=1798 && year<=1843)
-	{
-		k = 1.925; a0 = 12.584; a1 = 1.929; a2 = 60.896; a3 = -1432.216; a4 = 3129.071;
-	}
-	else if (year>=1844 && year<=1877)
-	{
-		k = 1.525; a0 = 6.364; a1 = 11.004; a2 = 407.776; a3 = -4168.394; a4 = 7561.686;
-	}
-	else if (year>=1878 && year<=1904)
-	{
-		k = 1.220; a0 = -5.058; a1 = -1.701; a2 = -46.403; a3 = -866.171; a4 = 5917.585;
-	}
-	else if (year>=1905 && year<=1945)
-	{
-		k = 0.880; a0 = 13.392; a1 = 128.592; a2 = -279.165; a3 = -1282.050; a4 = 4039.490;
-	}
-	else if (year>=1946 && year<=1989)
-	{
-		k = 0.455; a0 = 30.782; a1 = 34.348; a2 = 46.452; a3 = 1295.550; a4 = -3210.913;
-	}
-	else if (year>=1990 && year<=2013)
-	{
-		k = 0.115; a0 = 55.281; a1 = 91.248; a2 = 87.202; a3 = -3092.565; a4 = 8255.422;
-	}
-	else
-	{
-		k = 0.0; a0 = 0.0; a1 = 0.0; a2 = 0.0; a3 = 0.0; a4 = 0.0;
-	}
+	//double a0, a1, a2, a3, a4;
+	const float k[9] ={     3.670f,    3.120f,    2.495f,     1.925f,     1.525f,    1.220f,     0.880f,     0.455f,      0.115f};
+	const float a0[9]={    76.541f,   10.872f,   13.480f,    12.584f,     6.364f,   -5.058f,    13.392f,    30.782f,     55.281f};
+	const float a1[9]={  -253.532f,  -40.744f,   13.075f,     1.929f,    11.004f,   -1.701f,   128.592f,    34.348f,     91.248f};
+	const float a2[9]={   695.901f,  236.890f,    8.635f,    60.896f,   407.776f,  -46.403f,  -279.165f,    46.452f,     87.202f};
+	const float a3[9]={ -1256.982f, -351.537f,   -3.307f, -1432.216f, -4168.394f, -866.171f, -1282.050f,  1295.550f,  -3092.565f};
+	const float a4[9]={   627.152f,   36.612f, -128.294f,  3129.071f,  7561.686f, 5917.585f,  4039.490f, -3210.913f,   8255.422f};
+	int i;
+	// Limited years! Deliver border values.
+	year=qMax(1620, qMin(year, 2013));
 
-	double u = k + (year - 2000)/100;
+	if (year<=1672)
+		i=0;
+	else if (year<=1729)
+		i=1;
+	else if (year<=1797)
+		i=2;
+	else if (year<=1843)
+		i=3;
+	else if (year<=1877)
+		i=4;
+	else if (year<=1904)
+		i=5;
+	else if (year<=1945)
+		i=6;
+	else if (year<=1989)
+		i=7;
+	else // if (year<=2013)
+		i=8;
 
-	return (((a4*u + a3)*u + a2)*u + a1)*u + a0;
+	double u = k[i] + (year - 2000)/100;
+
+	return (((a4[i]*u + a3[i])*u + a2[i])*u + a1[i])*u + a0[i];
 }
 
 double getMoonSecularAcceleration(const double jDay, const double nd, const bool useDE43x)
