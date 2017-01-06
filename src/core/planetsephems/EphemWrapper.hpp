@@ -87,7 +87,10 @@ void get_umbriel_parent_coordsv(double jd,double xyz[3], void*);
 void get_titania_parent_coordsv(double jd,double xyz[3], void*);
 void get_oberon_parent_coordsv(double jd,double xyz[3], void*);
 
+#if 0
+// GZ re-implemented differently as of 2017-01.
 // GZ: preliminary definitions. Should go to another new file.
+// The pattern might be changed to (const double jde, double *raDeg, double *decDeg, Vec3d *rotDeg) with rotDeg[0] the usual rotation, and CM1/CM2/CM3 for Jupiter.
 void get_mercury_axis_rot(const double jde, double *raDeg, double *decDeg, double *rotDeg);
 void get_jupiter_axis_rot(const double jde, double *raDeg, double *decDeg, double *rotDeg1, double *rotDeg2, double *rotDeg3);
 void get_neptune_axis_rot(const double jde, double *raDeg, double *decDeg, double *rotDeg);
@@ -130,7 +133,7 @@ void get_proteus_axis_rot(const double jde, double *raDeg, double *decDeg, doubl
 void get_triton_axis_rot(const double jde, double *raDeg, double *decDeg, double *rotDeg);
 void get_io_axis_rot(const double jde, double *raDeg, double *decDeg, double *rotDeg);
 
-
+#endif
 
 #endif // _EPHEMWRAPPER_HPP_
 

@@ -30,7 +30,7 @@
 #include <QString>
 
 // The callback type for the external position computation function
-// The last variable is the userData pointer.
+// The last variable is the userData pointer, which is NULL for Planets, but used in derived classes. E.g. points to the CometOrbit for Comets.
 typedef void (*posFuncType)(double, double*, void*);
 
 // GZ2016: new axis functions for external computation of axis orientations for selected objects.
@@ -81,22 +81,24 @@ class RotationElements
 public:
 	RotationElements(void) : period(1.), offset(0.), epoch(J2000), obliquity(0.), ascendingNode(0.), //precessionRate(0.),
 		siderealPeriod(0.),
-		useICRF(false), ra0(0.), ra1(0.), de0(0.), de1(0.) {}
-	float period;          // (sidereal) rotation period [earth days]     If useICRF, this is from the time term of W.
-	float offset;          // rotation at epoch  [degrees]                If useICRF, this is the constant term of W
+		useICRF(false), ra0(0.), ra1(0.), de0(0.), de1(0.), W0(0.), W1(0.) {}
+	float period;          // (sidereal) rotation period [earth days]   CURRENTLY NOT:  If useICRF, this is from the time term of W.
+	float offset;          // rotation at epoch  [degrees]              CURRENTLY NOT:  If useICRF, this is the constant term of W
 	double epoch;          // JDE (JD TT) of epoch for these elements
 	float obliquity;       // tilt of rotation axis w.r.t. ecliptic [radians]
 	float ascendingNode;   // long. of ascending node of equator on the ecliptic [radians]
+	// Field rot_precession_rate in ssystem.ini is no longer used. We still keep Earth's value as it is evaluated in older versions (until 0.13.*).
 //	float precessionRate;  // rate of precession of rotation axis in [rads/JulianCentury(36525d)] [ NO LONGER USED WITH 0.14 (was used for Earth only, and that was too simple.) ]
 	double siderealPeriod; // sidereal period (Planet year in earth days) [earth days]
-	// GZ for 0.15: I propose changes here: The 4 new entries after the switch are enough for many objects. Else, design special_functions.
-	bool useICRF;          // Use values w.r.t. ICRF (should ultimately be true for all objects!) This can be set when rot_pole_ra is given. Updating the axis is required if ra1<>0
+	// GZ for 0.16: I propose changes here: The 6 new entries after the switch are enough for many objects. Else, design special_functions.
+	bool useICRF;          // Use values w.r.t. ICRF (should ultimately be true for all objects!) This can be set when rot_pole_w0 is given. Updating the axis is required if ra1<>0
 	double ra0;            // [rad] RA_0 right ascension of north pole. ssystem.ini: rot_pole_ra    /180*M_PI
 	double ra1;            // [rad/century] rate of change in axis ra   ssystem.ini: rot_pole_ra1   /180*M_PI
 	double de0;            // [rad] DE_0 declination of north pole      ssystem.ini: rot_pole_de    /180*M_PI
 	double de1;            // [rad/century] rate of change in axis de   ssystem.ini: rot_pole_de1   /180*M_PI
-//	double W0;             // [rad] mean longitude at epoch.
-//	double W1;             // [rad/d] mean longitude motion.
+	// These values are only in the modern algorithms. invalid if W0=0.
+	double W0;             // [rad] mean longitude at epoch.
+	double W1;             // [rad/d] mean longitude motion.
 };
 
 // Class to manage rings for planets like saturn
@@ -147,14 +149,15 @@ public:
 
 	enum ApparentMagnitudeAlgorithm
 	{
-		Expl_Sup_1992,	// Algorithm provided by Pere Planesas (Observatorio Astronomico Nacional) (Was called "Planesas")
 		Mueller_1893,	// G. Mueller, based on visual observations 1877-91. [Expl.Suppl.1961]
 		Astr_Alm_1984,	// Astronomical Almanac 1984 and later. These give V (instrumental) magnitudes (allegedly from D.L. Harris, but this is wrong!)
+		Expl_Sup_1992,	// Algorithm provided by Pere Planesas (Observatorio Astronomico Nacional) (Was called "Planesas")
+		Expl_Sup_2013,	// Explanatory Supplement to the Astronomical Almanac, 3rd edition 2013
 //		Planesas,		// Algorithm provided by Pere Planesas (Observatorio Astronomico Nacional)
 //		Mueller,		// G. Mueller, based on visual observations 1877-91. [Expl.Suppl.1961]
 //		Harris,			// Astronomical Almanac 1984 and later. These give V (instrumental) magnitudes (D.L. Harris)
 		UndefinedAlgorithm,
-		Generic		// Visual magnitude based on phase angle and albedo. The formula for this is totally unknown!
+		Generic		// Visual magnitude based on phase angle and albedo. The formula source for this is totally unknown!
 	};
 
 	Planet(const QString& englishName,
@@ -227,8 +230,8 @@ public:
 	double getRadius(void) const {return radius;}
 	//! Get the value (1-f) for oblateness f.
 	double getOneMinusOblateness(void) const {return oneMinusOblateness;}
-	//! Get duration of sidereal day
-	double getSiderealDay(void) const {return re.period;}
+	//! Get duration of sidereal day (earth days, may come from rot_periode or orbit_period (for moons) from ssystem.ini)
+	double getSiderealDay(void) const { if (re.W1) return 2.*M_PI/re.W1; else return re.period;} // I assume the more modern values are better.
 	//! Get duration of sidereal year
 	// must be virtual for Comets.
 	virtual double getSiderealPeriod(void) const { return re.siderealPeriod; }
@@ -269,6 +272,8 @@ public:
 				 const double _ra1,
 				 const double _de0,
 				 const double _de1,
+				 const double _w0,
+				 const double _w1,
 				 //float _precessionRate,
 				 const double _siderealPeriod);
 	double getRotAscendingnode(void) const {return re.ascendingNode;}
@@ -286,13 +291,13 @@ public:
 	// This requires both flavours of JD in cases involving Earth.
 	void computeTransMatrix(double JD, double JDE);
 
-	// Get the phase angle (rad) for an observer at pos obsPos in heliocentric coordinates (in AU)
+	//! Get the phase angle (radians) for an observer at pos obsPos in heliocentric coordinates (in AU)
 	double getPhaseAngle(const Vec3d& obsPos) const;
-	// Get the elongation angle (rad) for an observer at pos obsPos in heliocentric coordinates (in AU)
+	//! Get the elongation angle (radians) for an observer at pos obsPos in heliocentric coordinates (in AU)
 	double getElongation(const Vec3d& obsPos) const;
-	// Get the angular size of the spheroid of the planet (i.e. without the rings)
+	//! Get the angular radius (degrees) of the spheroid of the planet (i.e. without the rings)
 	double getSpheroidAngularSize(const StelCore* core) const;
-	// Get the planet phase for an observer at pos obsPos in heliocentric coordinates (in AU)
+	//! Get the planet phase (illuminated fraction of the planet disk, 0..1) for an observer at pos obsPos in heliocentric coordinates (in AU)
 	float getPhase(const Vec3d& obsPos) const;
 
 	//! Get the Planet position in the parent Planet ecliptic coordinate in AU
@@ -301,12 +306,17 @@ public:
 	// Return the heliocentric ecliptical position
 	Vec3d getHeliocentricEclipticPos() const {return getHeliocentricPos(eclipticPos);}
 
-	// Return the heliocentric transformation for local coordinate
-	Vec3d getHeliocentricPos(Vec3d) const;
+	//! Return the heliocentric transformation for local (parentocentric) coordinate
+	//! @arg p planetocentric rectangular ecliptical coordinate (J2000)
+	//! @return heliocentric rectangular ecliptical coordinates (J2000)
+	Vec3d getHeliocentricPos(Vec3d p) const;
+	//! Propagate the heliocentric coordinates to parentocentric coordinates
+	//! @arg pos heliocentric rectangular ecliptical coordinate (J2000)
 	void setHeliocentricEclipticPos(const Vec3d &pos);
 
-	// Compute the distance to the given position in heliocentric coordinate (in AU)
+	//! Compute and return the distance to the given position in heliocentric ecliptical (J2000) coordinate (in AU)
 	double computeDistance(const Vec3d& obsHelioPos);
+	//! Return the last computed distance to the given position in heliocentric ecliptical (J2000) coordinate (in AU)
 	double getDistance(void) const {return distance;}
 
 	void setRings(Ring* r) {rings = r;}
@@ -459,7 +469,7 @@ protected:
 	QString normalMapName;              // Texture file path
 	int flagLighting;                // Set whether light computation has to be proceed
 	RotationElements re;             // Rotation param
-	double radius;                   // Planet radius in AU
+	double radius;                   // Planet equatorial radius in AU
 	double oneMinusOblateness;       // (polar radius)/(equatorial radius)
 	Vec3d eclipticPos;               // Position in AU in the rectangular ecliptic coordinate system, (GZ2016: presumably equinox J2000)
 					 // centered on the parent Planet
@@ -484,7 +494,7 @@ protected:
 	double lastJDE;                  // caches JDE of last positional computation
 	// The callback for the calculation of the equatorial rect heliocentric position at time JDE.
 	posFuncType coordFunc;
-	void* userDataPtr;               // this is always used with an Orbit object.
+	void* userDataPtr;               // this is always set to an Orbit object usable for positional computations. For the major planets, it is NULL.
 
 	OsculatingFunctType *const osculatingFunc;
 	QSharedPointer<Planet> parent;           // Planet parent i.e. sun for earth
@@ -509,6 +519,79 @@ protected:
 	static int customGrsLongitude;		// Longitude of Great Red Spot (System II, degrees)
 	static double customGrsDrift;		// Annual drift of Great Red Spot position (degrees)
 	
+	// 0.16: Axes of planets and moons require terms depending on T=(jde-J2000)/36525, described in Explanatory Supplement 2013, Tables 10.1 and 10.10-14.
+	// Others require frequent updates, depending on jde-J2000. (Moon etc.)
+	// These should be updated as frequently as needed, optimally with the planet. Light time correction should be applied when needed.
+	// beat place to call update is the SolarSystem::computePlanets()
+	struct PlanetCorrections {
+		double JDE_E; // keep record of when these values are valid: Earth
+		double JDE_J; // keep record of when these values are valid: Jupiter
+		double JDE_S; // keep record of when these values are valid: Saturn
+		double JDE_U; // keep record of when these values are valid: Uranus
+		double JDE_N; // keep record of when these values are valid: Neptune
+
+		double E1; // Earth corrections. These are from WGCCRE2009.
+		double E2;
+		double E3;
+		double E4;
+		double E5;
+		double E6;
+		double E7;
+		double E8;
+		double E9;
+		double E10;
+		double E11;
+		double E12;
+		double E13;
+		double Ja1; // Jupiter axis terms, Table 10.1
+		double Ja2;
+		double Ja3;
+		double Ja4;
+		double Ja5;
+		double Na; // Neptune axix term
+		double J1; // corrective terms for Jupiter' moons, Table 10.10
+		double J2;
+		double J3;
+		double J4;
+		double J5;
+		double J6;
+		double J7;
+		double J8;
+		double S1; // corrective terms for Saturn's moons, Table 10.12
+		double S2;
+		double S3;
+		double S4;
+		double S5;
+		double S6;
+		//double U1; // corrective terms for Uranus's moons, Table 10.14.
+		//double U2;
+		//double U3;
+		//double U4;
+		//double U5;
+		//double U6;
+		//double U7;
+		//double U8;
+		//double U9;
+		//double U10;
+		double U11;
+		double U12;
+		double U13;
+		double U14;
+		double U15;
+		double U16;
+		double N1; // corrective terms for Neptune's moons, Table 10.15 (N=Na!)
+		double N2;
+		double N3;
+		double N4;
+		double N5;
+		double N6;
+		double N7;
+	};
+	static PlanetCorrections planetCorrections;
+	// Update the planet corrections. planet=3(Moon), 5(Jupiter), 6(Saturn), 7(Uranus), 8(Neptune).
+	// The values are immediately converted to radians.
+	static void updatePlanetCorrections(const double JDE, const int planet);
+
 	// Shader-related variables
 	struct PlanetShaderVars {
 		int projectionMatrix;

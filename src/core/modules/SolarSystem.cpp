@@ -992,7 +992,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 					       pd.value(secname+"/tex_map").toString(),
 					       pd.value(secname+"/normals_map", normalMapName).toString(),
 					       posfunc,
-					       userDataPtr,
+					       userDataPtr,  // This remains NULL for the major planets!
 					       osculatingFunc,
 					       closeOrbit,
 					       pd.value(secname+"/hidden", 0).toBool(),
@@ -1017,7 +1017,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		// Use more common planet North pole data if available
 		// NB: N pole as defined by IAU (NOT right hand rotation rule)
 		// NB: J2000 epoch
-		// GZ TODO for 0.15: Make this more flexible with changing axes. and have special functions for more complicated axes.
+		// GZ TODO for 0.16: Make this more flexible with changing axes. and have special functions for more complicated axes.
 		double J2000NPoleRA  = pd.value(secname+"/rot_pole_ra", 0.).toDouble()*M_PI/180.;
 		double J2000NPoleRA1 = pd.value(secname+"/rot_pole_ra1", 0.).toDouble()*M_PI/180.;
 		double J2000NPoleDE  = pd.value(secname+"/rot_pole_de", 0.).toDouble()*M_PI/180.;
@@ -1031,7 +1031,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		if(J2000NPoleRA || J2000NPoleDE)
 		{
 			// Old solution: Make this once for J2000.
-			// New in 0.15: Repeat this block in planet::update() if required.
+			// New in 0.16: Repeat this block in planet::update() if required.
 			Vec3d J2000NPole;
 			StelUtils::spheToRect(J2000NPoleRA,J2000NPoleDE,J2000NPole);
 
@@ -1045,7 +1045,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 
 			// qDebug() << "\tCalculated rotational obliquity: " << rotObliquity*180./M_PI << endl;
 			// qDebug() << "\tCalculated rotational ascending node: " << rotAscNode*180./M_PI << endl;
-
+			/*
 			if (J2000NPoleW0 >0)
 			{
 				// this is just another name for offset...
@@ -1057,6 +1057,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 				rotPeriod=360.0/J2000NPoleW1;
 				// qDebug() << "\t" << englishName << ": Calculated rotational speed: " << rotPeriod*180./M_PI << endl;
 			}
+			*/
 		}
 
 		p->setRotationElements(
@@ -1070,6 +1071,8 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			J2000NPoleRA1,
 			J2000NPoleDE,
 			J2000NPoleDE1,
+			J2000NPoleW0,
+			J2000NPoleW1,
 			pd.value(secname+"/orbit_visualization_period",0.).toDouble()); // TODO; Get rid of the last parameter!
 
 
@@ -1115,6 +1118,11 @@ void SolarSystem::computePositions(double dateJDE, const Vec3d& observerPos)
 		{
 			const double light_speed_correction = (p->getHeliocentricEclipticPos()-observerPos).length() * (AU / (SPEED_OF_LIGHT * 86400));
 			p->computePosition(dateJDE-light_speed_correction);
+			if      (p->englishName=="Moon")    Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 3);
+			else if (p->englishName=="Jupiter") Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 5);
+			else if (p->englishName=="Saturn")  Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 6);
+			else if (p->englishName=="Uranus")  Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 7);
+			else if (p->englishName=="Neptune") Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 8);
 		}
 	}
 	else
@@ -1122,6 +1130,11 @@ void SolarSystem::computePositions(double dateJDE, const Vec3d& observerPos)
 		foreach (PlanetP p, systemPlanets)
 		{
 			p->computePosition(dateJDE);
+			if      (p->englishName=="Moon")    Planet::updatePlanetCorrections(dateJDE, 3);
+			else if (p->englishName=="Jupiter") Planet::updatePlanetCorrections(dateJDE, 5);
+			else if (p->englishName=="Saturn")  Planet::updatePlanetCorrections(dateJDE, 6);
+			else if (p->englishName=="Uranus")  Planet::updatePlanetCorrections(dateJDE, 7);
+			else if (p->englishName=="Neptune") Planet::updatePlanetCorrections(dateJDE, 8);
 		}
 	}
 	computeTransMatrices(dateJDE, observerPos);
@@ -1533,6 +1546,7 @@ void SolarSystem::update(double deltaTime)
 bool SolarSystem::nearLunarEclipse()
 {
 	// TODO: could replace with simpler test
+	// TODO Source?
 
 	Vec3d e = getEarth()->getEclipticPos();
 	Vec3d m = getMoon()->getEclipticPos();  // relative to earth
@@ -1544,13 +1558,13 @@ bool SolarSystem::nearLunarEclipse()
 	Vec3d shadow = en * (e.length() + m.length());
 
 	// find shadow radii in AU
-	double r_penumbra = shadow.length()*702378.1/AU/e.length() - 696000/AU;
+	double r_penumbra = shadow.length()*702378.1/AU/e.length() - 696000./AU;
 
 	// modify shadow location for scaled moon
 	Vec3d mdist = shadow - mh;
-	if(mdist.length() > r_penumbra + 2000/AU) return 0;   // not visible so don't bother drawing
+	if(mdist.length() > r_penumbra + 2000./AU) return false;   // not visible so don't bother drawing
 
-	return 1;
+	return true;
 }
 
 QStringList SolarSystem::listAllObjects(bool inEnglish) const

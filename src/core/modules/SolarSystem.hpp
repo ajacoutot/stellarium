@@ -635,7 +635,7 @@ public slots:
 	//! It is interesting to note that Meeus in his discussion of "Harris" states that Harris did not give new values.
 	//! The book indeed mentions a few values for the inner planets citing Danjon, but different from those then listed by Meeus.
 	//! Therefore it must be assumed that the "Harris" values are misnomed, and are the least certain set.
-	//! They should be renamed to be: Expl_Sup_1992/Mueller_1893/Astr_Alm_1884
+	//! They should be renamed to be: Expl_Sup_1992/Mueller_1893/Astr_Alm_1984
 	//!
 	//! Hint: Default option in config.ini: astro/apparent_magnitude_algorithm = Harris
 	//  TODO: REPLACE default by Expl_Sup_1992 (previously called "Planesas")
@@ -644,7 +644,7 @@ public slots:
 	//! Mueller's algorithm to better simulate the eye's impression. (Esp. Venus!)
 	void setApparentMagnitudeAlgorithmOnEarth(QString algorithm);
 
-	//! Get the algorithm used for computation of apparent magnitudes for planets in case  observer on the Earth
+	//! Get the algorithm used for computation of apparent magnitudes for planets in case observer on the Earth
 	//! @see setApparentMagnitudeAlgorithmOnEarth()
 	QString getApparentMagnitudeAlgorithmOnEarth() const;
 

@@ -82,8 +82,8 @@ Comet::Comet(const QString& englishName,
 		  false, //No atmosphere
 		  true, //halo
 		  pTypeStr),
-	  absoluteMagnitude(0.),
-	  slopeParameter(-1.), //== uninitialized: used in getVMagnitude()
+	  absoluteMagnitude(0.f),
+	  slopeParameter(-10.f), // -10== uninitialized: used in getVMagnitude()
 	  semiMajorAxis(0.),
 	  isCometFragment(false),
 	  nameIsProvisionalDesignation(false),
@@ -96,8 +96,6 @@ Comet::Comet(const QString& englishName,
 	  dustTailLengthFactor(dustTailLengthFact),
 	  dustTailBrightnessFactor(dustTailBrightnessFact)
 {
-	eclipticPos=Vec3d(0.,0.,0.);
-	rotLocalToParent = Mat4d::identity();
 	texMap = StelApp::getInstance().getTextureManager().createTextureThread(StelFileMgr::getInstallationDir()+"/textures/"+texMapName, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
 
 	gastailVertexArr.clear();
@@ -113,11 +111,12 @@ Comet::~Comet()
 {
 }
 
-void Comet::setAbsoluteMagnitudeAndSlope(const double magnitude, const double slope)
+void Comet::setAbsoluteMagnitudeAndSlope(const float magnitude, const float slope)
 {
-	if (slope < 0 || slope > 20.0)
+	if (slope < -1. || slope > 20.0)
 	{
-		qDebug() << "Comet::setAbsoluteMagnitudeAndSlope(): Invalid slope parameter value (must be between 0 and 20)";
+		// Slope G can become slightly smaller than 0. -10 is mark of invalidity.
+		qDebug() << "Comet::setAbsoluteMagnitudeAndSlope(): Invalid slope parameter value (must be between -1 and 20)";
 		return;
 	}
 
@@ -177,9 +176,9 @@ QString Comet::getInfoString(const StelCore *core, const InfoStringGroup &flags)
 	if (flags&AbsoluteMagnitude)
 	{
 		//TODO: Make sure absolute magnitude is a sane value
-		//If the two parameter magnitude system is not use, don't display this
+		//If the two parameter magnitude system is not used, don't display this
 		//value. (Using radius/albedo doesn't make any sense for comets.)
-		if (slopeParameter >= 0)
+		if (slopeParameter >= -9.9f)
 			oss << q_("Absolute Magnitude: %1").arg(absoluteMagnitude, 0, 'f', 2) << "<br>";
 	}
 
@@ -294,7 +293,7 @@ float Comet::getVMagnitude(const StelCore* core) const
 {
 	//If the two parameter system is not used,
 	//use the default radius/albedo mechanism
-	if (slopeParameter < 0)
+	if (slopeParameter < -9.0f)
 	{
 		return Planet::getVMagnitude(core);
 	}
@@ -329,19 +328,12 @@ void Comet::update(int deltaTime)
 	Q_ASSERT(orbit);
 	if (!orbit->objectDateValid(dateJDE)) return; // don't do anything if out of useful date range. This allows having hundreds of comet elements.
 
-
 	//GZ: I think we can make deltaJDtail adaptive, depending on distance to sun! For some reason though, this leads to a crash!
 	//deltaJDtail=StelCore::JD_SECOND * qMax(1.0, qMin(eclipticPos.length(), 20.0));
 
 	if (fabs(lastJDEtail-dateJDE)>deltaJDEtail)
 	{
 		lastJDEtail=dateJDE;
-
-		// GZ 2016: has been given above. Remove those duplicate lines?
-//		// The CometOrbit is in fact available in userDataPtr!
-//		CometOrbit* orbit=(CometOrbit*)userDataPtr;
-//		Q_ASSERT(orbit);
-//		if (!orbit->objectDateValid(dateJDE)) return; // out of useful date range. This should allow having hundreds of comet elements.
 
 		if (orbit->getUpdateTails()){
 			// Compute lengths and orientations from orbit object, but only if required.
@@ -396,7 +388,7 @@ void Comet::update(int deltaTime)
 	const bool withAtmosphere=(core->getSkyDrawer()->getFlagHasAtmosphere());
 
 	StelToneReproducer* eye = core->getToneReproducer();
-	float lum = core->getSkyDrawer()->surfacebrightnessToLuminance(getVMagnitude(core)+13.0f); // How to calibrate?
+	const float lum = core->getSkyDrawer()->surfacebrightnessToLuminance(getVMagnitude(core)+13.0f); // How to calibrate?
 	// Get the luminance scaled between 0 and 1
 	float aLum =eye->adaptLuminanceScaled(lum);
 
@@ -604,13 +596,13 @@ void Comet::drawComa(StelCore* core, StelProjector::ModelViewTranformP transfo)
 // Formula found at http://www.projectpluto.com/update7b.htm#comet_tail_formula
 Vec2f Comet::getComaDiameterAndTailLengthAU()
 {
-	float r = getHeliocentricEclipticPos().length();
-	float mhelio = absoluteMagnitude + slopeParameter * log10(r);
-	float Do = pow(10.0f, ((-0.0033f*mhelio - 0.07f) * mhelio + 3.25f));
-	float common = 1.0f - pow(10.0f, (-2.0f*r));
-	float D = Do * common * (1.0f - pow(10.0f, -r)) * (1000.0f*AU_KM);
-	float Lo = pow(10.0f, ((-0.0075f*mhelio - 0.19f) * mhelio + 2.1f));
-	float L = Lo*(1.0f-pow(10.0f, -4.0f*r)) * common * (1e6*AU_KM);
+	const float r = getHeliocentricEclipticPos().length();
+	const float mhelio = absoluteMagnitude + slopeParameter * log10(r);
+	const float Do = pow(10.0f, ((-0.0033f*mhelio - 0.07f) * mhelio + 3.25f));
+	const float common = 1.0f - pow(10.0f, (-2.0f*r));
+	const float D = Do * common * (1.0f - pow(10.0f, -r)) * (1000.0f*AU_KM);
+	const float Lo = pow(10.0f, ((-0.0075f*mhelio - 0.19f) * mhelio + 2.1f));
+	const float L = Lo*(1.0f-pow(10.0f, -4.0f*r)) * common * (1e6*AU_KM);
 	return Vec2f(D, L);
 }
 

@@ -64,13 +64,11 @@ MinorPlanet::MinorPlanet(const QString& englishName,
 		  pTypeStr),
 	minorPlanetNumber(0),
 	absoluteMagnitude(0.0f),
-	slopeParameter(-1.0f), //== mark as uninitialized: used in getVMagnitude()
+	slopeParameter(-10.0f), // -10 == mark as uninitialized: used in getVMagnitude()
 	semiMajorAxis(0.),
 	nameIsProvisionalDesignation(false),
 	properName(englishName)
 {
-	eclipticPos=Vec3d(0.,0.,0.);
-	rotLocalToParent = Mat4d::identity();
 	texMap = StelApp::getInstance().getTextureManager().createTextureThread(StelFileMgr::getInstallationDir()+"/textures/"+texMapName, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
 
 	//TODO: Fix the name
@@ -143,9 +141,10 @@ void MinorPlanet::setMinorPlanetNumber(int number)
 
 void MinorPlanet::setAbsoluteMagnitudeAndSlope(double magnitude, double slope)
 {
-	if (slope < 0 || slope > 1.0)
+	if (slope < -1.f || slope > 2.0)
 	{
-		qDebug() << "MinorPlanet::setAbsoluteMagnitudeAndSlope(): Invalid slope parameter value (must be between 0 and 1)";
+		// G "should" be between 0 and 1, but may be somewhat outside.
+		qDebug() << "MinorPlanet::setAbsoluteMagnitudeAndSlope(): Invalid slope parameter value (must be between -1 and 2, mostly [0..1])";
 		return;
 	}
 
@@ -212,9 +211,12 @@ QString MinorPlanet::getInfoString(const StelCore *core, const InfoStringGroup &
 
 	if (flags&AbsoluteMagnitude)
 	{
+		// Absolute magnitude H for Minor Planets is its magnitude when in solar radius 1AU, at distance 1AU, with phase angle 0.
 		//TODO: Make sure absolute magnitude is a sane value
 		//If the H-G system is not used, use the default radius/albedo mechanism
-		if (slopeParameter < 0)
+		// TODO: Apparently, the first solution makes "Absolute" magnitudes for 10pc distance. This is not the definition for Abs.Mag. for Minor Bodies!
+		// Hint from Wikipedia:https://en.wikipedia.org/wiki/Absolute_magnitude#Solar_System_bodies_.28H.29: subtract 31.57 from the value...
+		if (slopeParameter < -9.99f)
 		{
 			oss << q_("Absolute Magnitude: %1").arg(getVMagnitude(core) - 5. * (std::log10(distanceAu*AU/PARSEC)-1.), 0, 'f', 2) << "<br>";
 		}
@@ -319,7 +321,7 @@ double MinorPlanet::getSiderealPeriod() const
 float MinorPlanet::getVMagnitude(const StelCore* core) const
 {
 	//If the H-G system is not used, use the default radius/albedo mechanism
-	if (slopeParameter < 0)
+	if (slopeParameter < -9.99f) // G can be somewhat <0! Set to -10 to mark invalid.
 	{
 		return Planet::getVMagnitude(core);
 	}
@@ -337,6 +339,7 @@ float MinorPlanet::getVMagnitude(const StelCore* core) const
 
 	//Calculate reduced magnitude (magnitude without the influence of distance)
 	//Source of the formulae: http://www.britastro.org/asteroids/dymock4.pdf
+	// Same model as in Explanatory Supplement 2013, p.423
 	const float tanPhaseAngleHalf=std::tan(phaseAngle*0.5f);
 	const float phi1 = std::exp(-3.33f * std::pow(tanPhaseAngleHalf, 0.63f));
 	const float phi2 = std::exp(-1.87f * std::pow(tanPhaseAngleHalf, 1.22f));

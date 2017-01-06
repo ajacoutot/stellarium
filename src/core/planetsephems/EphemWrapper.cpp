@@ -426,6 +426,7 @@ void get_oberon_parent_coordsv(double jd,double xyz[3], void* unused)
 	GetGust86Coor(jd,GUST86_OBERON,xyz);
 }
 
+#if 0
 
 /* GZ: The functions provide non-generic axis rotations from
  * B.A. Archinal et al.: Report of the IAU Working Group on Cartographic Coordinates and Rotational Elements: 2009
@@ -933,5 +934,5 @@ void get_triton_axis_rot(const double jde, double *raDeg, double *decDeg, double
 		+ 0.01*sin(9.0*Nrot[7]);
 
 }
-
+#endif
 
