@@ -221,7 +221,7 @@ void sphe_to_rect(double lng, double lat, double r, double *x, double *y, double
 }
 
 /*
- Chap 37. Equ 37.1
+ Meeus, Astron. Algorithms 2nd ed (1998). Chap 37. Equ 37.1
  params : Julian day, Longitude, Latitude, Radius
 
  Calculate Pluto heliocentric ecliptical coordinates for given julian day.
