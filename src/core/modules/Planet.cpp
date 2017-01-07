@@ -1455,6 +1455,8 @@ float Planet::getMeanOppositionMagnitude() const
 {
 	if (absoluteMagnitude==-99.)
 		return 100.;
+	if (englishName=="Sun")
+		return 100;
 
 	double semimajorAxis=0.;
 	if (englishName=="Moon")
@@ -2229,7 +2231,7 @@ void Planet::draw3dModel(StelCore* core, StelProjector::ModelViewTranformP trans
 
 		// possibly tint sun's color from extinction. This should deliberately cause stronger reddening than for the other objects.
 		if (this==ssm->getSun())
-			sPainter->setColor(2.f, pow(0.75f, extinctedMag)*2.f, pow(0.42f, 0.9f*extinctedMag)*2.f);
+			sPainter->setColor(1.2f, pow(0.75f, extinctedMag)*1.2f, pow(0.42f, 0.9f*extinctedMag)*1.2f);
 
 
 		if (rings)
