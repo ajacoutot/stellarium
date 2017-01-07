@@ -98,6 +98,8 @@ public:
 	void setUpdateTails(const bool update){ updateTails=update; }
 	//! return speed value [AU/d] last computed by positionAtTimevInVSOP87Coordinates(JDE, v, true)
 	Vec3d getVelocity() const { return rdot; }
+	double getSemimajorAxis() const { return (e==1. ? 0. : q / (1.-e)); }
+	double getEccentricity() const { return e; }
 	bool objectDateValid(const double JDE) const { return (fabs(t0-JDE)<orbitGood); }
 private:
 	const double q;  //! perihel distance

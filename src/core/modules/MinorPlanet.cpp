@@ -29,6 +29,7 @@
 #include "StelTranslator.hpp"
 #include "StelUtils.hpp"
 #include "StelFileMgr.hpp"
+#include "Orbit.hpp"
 
 #include <QRegExp>
 #include <QDebug>
@@ -63,9 +64,9 @@ MinorPlanet::MinorPlanet(const QString& englishName,
 		  true,  //Halo
 		  pTypeStr),
 	minorPlanetNumber(0),
-	absoluteMagnitude(0.0f),
+	//absoluteMagnitude(0.0f),
 	slopeParameter(-10.0f), // -10 == mark as uninitialized: used in getVMagnitude()
-	semiMajorAxis(0.),
+	//semiMajorAxis(0.),
 	nameIsProvisionalDesignation(false),
 	properName(englishName)
 {
@@ -124,12 +125,12 @@ MinorPlanet::~MinorPlanet()
 	//Do nothing for the moment
 }
 
-void MinorPlanet::setSemiMajorAxis(double value)
-{
-	semiMajorAxis = value;
-	// GZ: in case we have very many asteroids, this helps improving speed usually without sacrificing accuracy:
-	deltaJDE = 2.0*semiMajorAxis*StelCore::JD_SECOND;
-}
+//void MinorPlanet::setSemiMajorAxis(double value)
+//{
+//	semiMajorAxis = value;
+//	// GZ: in case we have very many asteroids, this helps improving speed usually without sacrificing accuracy:
+//	deltaJDE = 2.0*semiMajorAxis*StelCore::JD_SECOND;
+//}
 
 void MinorPlanet::setMinorPlanetNumber(int number)
 {
@@ -309,13 +310,14 @@ QString MinorPlanet::getInfoString(const StelCore *core, const InfoStringGroup &
 
 double MinorPlanet::getSiderealPeriod() const
 {
-	double period;
-	if (semiMajorAxis>0)
-		period = StelUtils::calculateSiderealPeriod(semiMajorAxis);
-	else
-		period = 0;
+//	double period;
+//	if (semiMajorAxis>0)
+//		period = StelUtils::calculateSiderealPeriod(semimajorAxis);
+//	else
+//		period = 0;
 
-	return period;
+//	return period;
+	return StelUtils::calculateSiderealPeriod(((CometOrbit*)userDataPtr)->getSemimajorAxis());
 }
 
 float MinorPlanet::getVMagnitude(const StelCore* core) const

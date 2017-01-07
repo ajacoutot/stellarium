@@ -25,6 +25,7 @@
 #include "SolarSystem.hpp"
 #include "LandscapeMgr.hpp"
 #include "Planet.hpp"
+#include "Orbit.hpp"
 #include "planetsephems/precession.h"
 #include "StelObserver.hpp"
 #include "StelProjector.hpp"
@@ -123,6 +124,7 @@ Planet::Planet(const QString& englishName,
 	  eclipticPos(0.,0.,0.),
 	  haloColor(halocolor),
 	  albedo(albedo),
+	  absoluteMagnitude(-99.0f),
 	  rotLocalToParent(Mat4d::identity()),
 	  axisRotation(0.f),
 	  rings(NULL),
@@ -266,8 +268,13 @@ QString Planet::getInfoString(const StelCore* core, const InfoStringGroup& flags
 		else
 			oss << q_("Magnitude: <b>%1</b>").arg(getVMagnitude(core), 0, 'f', 2) << "<br>";
 	}
-	if (flags&AbsoluteMagnitude && getVMagnitude(core)!=std::numeric_limits<float>::infinity())
-		oss << q_("Absolute Magnitude: %1").arg(getVMagnitude(core)-5.*(std::log10(distanceAu*AU/PARSEC)-1.), 0, 'f', 2) << "<br>";
+	if (flags&AbsoluteMagnitude && (getAbsoluteMagnitude() > -99.))
+	{
+		oss << q_("Absolute Magnitude: %1").arg(getAbsoluteMagnitude(), 0, 'f', 2) << "<br>";
+		const float moMag=getMeanOppositionMagnitude();
+		if (moMag<50.f)
+			oss << q_("Mean Opposition Magnitude: %1").arg(moMag, 0, 'f', 2) << "<br>";
+	}
 
 	oss << getPositionInfoString(core, flags);
 
@@ -1125,12 +1132,151 @@ double Planet::getSiderealTime(double JD, double JDE) const
 			return get_mean_sidereal_time(JD, JDE);
 	}
 
-	// V0.16 new rotational thingies.
-	if (re.W0!=0)
+	// V0.16 new rotational values from ExplSup2013 or WGCCRE2009.
+	if (re.useICRF)  // could also become  (re.W0!=0)
 	{
-		double t=JDE-J2000;
-		double w=re.W0+t*re.W1; // radians
-		// TODO: ADD CORRECTIONS HERE
+		const double t=JDE-J2000;
+		const double T=t/36525.0;
+		double w=re.W0+fmod(t*re.W1, 2.*M_PI); // radians, clamped to small angles so that adding small corrections makes sense.
+		// Corrections from Explanatory Supplement 2013. Moon from WGCCRE2009.
+		if (englishName=="Moon")
+		{
+			w += -(1.4e-12*M_PI/180.) *t*t                      + (3.5610*M_PI/180.)*sin(planetCorrections.E1)
+			     +(0.1208*M_PI/180.)*sin(planetCorrections.E2)  - (0.0642*M_PI/180.)*sin(planetCorrections.E3)  + (0.0158*M_PI/180.)*sin(planetCorrections.E4)
+			     +(0.0252*M_PI/180.)*sin(planetCorrections.E5)  - (0.0066*M_PI/180.)*sin(planetCorrections.E6)  - (0.0047*M_PI/180.)*sin(planetCorrections.E7)
+			     -(0.0046*M_PI/180.)*sin(planetCorrections.E8)  + (0.0028*M_PI/180.)*sin(planetCorrections.E9)  + (0.0052*M_PI/180.)*sin(planetCorrections.E10)
+			     +(0.0040*M_PI/180.)*sin(planetCorrections.E11) + (0.0019*M_PI/180.)*sin(planetCorrections.E12) - (0.0044*M_PI/180.)*sin(planetCorrections.E13);
+		}
+		else if (englishName=="Mercury")
+		{
+			// The constants from the paper should be made into radians by the compiler!
+			const double M1=(174.791086*M_PI/180.0) + ( 4.092335*M_PI/180.0)*t;
+			const double M2=(349.582171*M_PI/180.0) + ( 8.184670*M_PI/180.0)*t;
+			const double M3=(164.373257*M_PI/180.0) + (12.277005*M_PI/180.0)*t;
+			const double M4=(339.164343*M_PI/180.0) + (16.369340*M_PI/180.0)*t;
+			const double M5=(153.955429*M_PI/180.0) + (20.461675*M_PI/180.0)*t;
+
+			w += (-0.00000535*M_PI/180.0)*sin(M5) - (0.00002364*M_PI/180.0)*sin(M4) - (0.00010280*M_PI/180.0)*sin(M3) - (0.00104581*M_PI/180.0)*sin(M2) + (0.00993822*M_PI/180.0)*sin(M1);
+		}
+		else if (englishName=="Neptune")
+		{
+			w -= (0.48*M_PI/180.0)*sin(planetCorrections.Na);
+		}
+		if (englishName=="Phobos")
+		{
+			const double M1=(169.51*M_PI/180.0) - (0.4357640*M_PI/180.0)*t;
+			const double M2=(192.93*M_PI/180.0) + (1128.4096700*M_PI/180.0)*t +(8.864*M_PI/180.0)*T*T;
+			w+=  (8.864*M_PI/180.0)*T*T - (1.42*M_PI/180.0)*sin(M1) - (0.78*M_PI/180.0)*sin(M2);
+		}
+		if (englishName=="Deimos")
+		{
+			const double M3=(53.47*M_PI/180.0) - (0.0181510*M_PI/180.0)*t;
+			w+=  (-0.520*M_PI/180.0)*T*T - (2.58*M_PI/180.0)*sin(M3) + (0.19*M_PI/180.0)*sin(M3);
+		}
+		else if (parent->englishName=="Jupiter")
+		{
+			if (englishName=="Io")
+			{
+				w+= (-0.085*M_PI/180.0)*sin(planetCorrections.J3) - (0.022*M_PI/180.0)*sin(planetCorrections.J4);
+			}
+			else if (englishName=="Europa")
+			{
+				w+= (-0.980*M_PI/180.0)*sin(planetCorrections.J4) - (0.054*M_PI/180.0)*sin(planetCorrections.J5) - (0.014*M_PI/180.0)*sin(planetCorrections.J6) - (0.008*M_PI/180.0)*sin(planetCorrections.J7);
+			}
+			else if (englishName=="Ganymede")
+			{
+				w+= (0.033*M_PI/180.0)*sin(planetCorrections.J4) - (0.389*M_PI/180.0)*sin(planetCorrections.J5) - (0.082*M_PI/180.0)*sin(planetCorrections.J6);
+			}
+			else if (englishName=="Callisto")
+			{
+				w+= (0.061*M_PI/180.0)*sin(planetCorrections.J5) - (0.533*M_PI/180.0)*sin(planetCorrections.J6) - (0.009*M_PI/180.0)*sin(planetCorrections.J8);
+			}
+			else if (englishName=="Amalthea")
+			{
+				w+= (0.76*M_PI/180.0)*sin(planetCorrections.J1) - (0.001*M_PI/180.0)*sin(2.*planetCorrections.J1);
+			}
+			else if (englishName=="Thebe")
+			{
+				w+= (1.91*M_PI/180.0)*sin(planetCorrections.J2) - (0.04*M_PI/180.0)*sin(2.*planetCorrections.J2);
+			}
+		}
+		else if (parent->englishName=="Saturn")
+		{
+			if (englishName=="Mimas")
+			{
+				w+= (-13.48*M_PI/180.0)*sin(planetCorrections.S3) - (44.85*M_PI/180.0)*sin(planetCorrections.S5);
+			}
+			else if (englishName=="Tethys")
+			{
+				w+= (-9.60*M_PI/180.0)*sin(planetCorrections.S4) + (2.23*M_PI/180.0)*sin(planetCorrections.S5);
+			}
+			else if (englishName=="Rhea")
+			{
+				w+= (-3.08*M_PI/180.0)*sin(planetCorrections.S6);
+			}
+			/*else if (englishName=="Janus")
+			{
+				w+= (1.613*M_PI/180.0)*sin(planetCorrections.S2) - (0.023*M_PI/180.0)*sin(2.*planetCorrections.S2);
+			}
+			else if (englishName=="Epimetheus")
+			{
+				w+= (3.133*M_PI/180.0)*sin(planetCorrections.S1) - (0.086*M_PI/180.0)*sin(2.*planetCorrections.S1);
+			}*/
+		}
+		else if (parent->englishName=="Uranus")
+		{
+			if (englishName=="Ariel")
+			{
+				w+= (0.05*M_PI/180.0)*sin(planetCorrections.U12) + (0.08*M_PI/180.0)*sin(planetCorrections.U13);
+			}
+			else if (englishName=="Umbriel")
+			{
+				w+= (-0.09*M_PI/180.0)*sin(planetCorrections.U12) + (0.06*M_PI/180.0)*sin(planetCorrections.U14);
+			}
+			else if (englishName=="Titania")
+			{
+				w+= (0.08*M_PI/180.0)*sin(planetCorrections.U15);
+			}
+			else if (englishName=="Oberon")
+			{
+				w+= (0.04*M_PI/180.0)*sin(planetCorrections.U16);
+			}
+			else if (englishName=="Miranda")
+			{
+				w+= (-1.27*M_PI/180.0)*sin(planetCorrections.U12) + (0.15*M_PI/180.0)*sin(2.*planetCorrections.U12) + (1.15*M_PI/180.0)*sin(planetCorrections.U11) - (0.09*M_PI/180.0)*sin(2.*planetCorrections.U11);
+			}
+		}
+		else if (parent->englishName=="Neptune")
+		{
+			if (englishName=="Triton")
+			{
+				w+= (0.05*M_PI/180.0)*sin(planetCorrections.U12) + (0.08*M_PI/180.0)*sin(planetCorrections.U13);
+			}
+			else if (englishName=="Naiad")
+			{
+				w+= (-0.48*M_PI/180.0)*sin(planetCorrections.Na) + (4.40*M_PI/180.0)*sin(planetCorrections.N1) - (0.27*M_PI/180.0)*sin(2.*planetCorrections.N1);
+			}
+			else if (englishName=="Thalassa")
+			{
+				w+= (-0.48*M_PI/180.0)*sin(planetCorrections.Na) + (0.19*M_PI/180.0)*sin(planetCorrections.N2);
+			}
+			else if (englishName=="Despina")
+			{
+				w+= (-0.49*M_PI/180.0)*sin(planetCorrections.Na) + (0.06*M_PI/180.0)*sin(planetCorrections.N3);
+			}
+			else if (englishName=="Galatea")
+			{
+				w+= (-0.48*M_PI/180.0)*sin(planetCorrections.Na) + (0.05*M_PI/180.0)*sin(planetCorrections.N4);
+			}
+			else if (englishName=="Larissa")
+			{
+				w+= (-0.48*M_PI/180.0)*sin(planetCorrections.Na) + (0.19*M_PI/180.0)*sin(planetCorrections.N5);
+			}
+			else if (englishName=="Proteus")
+			{
+				w+= (-0.48*M_PI/180.0)*sin(planetCorrections.Na) + (0.04*M_PI/180.0)*sin(planetCorrections.N6);
+			}
+		}
 		return w*180./M_PI;
 	}
 
@@ -1234,8 +1380,7 @@ Vec3d Planet::getHeliocentricEclipticPos() const
 // Return heliocentric ecliptical (J2000) coordinate of p [AU]
 Vec3d Planet::getHeliocentricPos(Vec3d p) const
 {
-	// Note: using shared copies is too slow here.  So we use direct access
-	// instead.
+	// Note: using shared copies is too slow here.  So we use direct access instead.
 	Vec3d pos = p;
 	const Planet* pp = parent.data();
 	if (pp)
@@ -1303,6 +1448,59 @@ double Planet::getElongation(const Vec3d& obsPos) const
 	const double planetRq = planetHelioPos.lengthSquared();
 	const double observerPlanetRq = (obsPos - planetHelioPos).lengthSquared();
 	return std::acos((observerPlanetRq  + observerRq - planetRq)/(2.0*sqrt(observerPlanetRq*observerRq)));
+}
+
+// Source: Explanatory Supplement 2013, Table 10.6 and formula (10.5) with semimajorAxis a from Table 8.7.
+float Planet::getMeanOppositionMagnitude() const
+{
+	if (absoluteMagnitude==-99.)
+		return 100.;
+
+	double semimajorAxis=0.;
+	if (englishName=="Moon")
+		return -12.74f;
+	else 	if (englishName=="Mars")
+		return -2.01f;
+	else if (englishName=="Jupiter")
+		return -2.7f;
+	else if (englishName=="Saturn")
+		return 0.67f;
+	else if (englishName=="Uranus")
+		return 5.52f;
+	else if (englishName=="Neptune")
+		return 7.84f;
+	else if (englishName=="Pluto")
+		return 15.12f;
+	else if (englishName=="Io")
+		return 5.02f;
+	else if (englishName=="Europa")
+		return 5.29f;
+	else if (englishName=="Ganymede")
+		return 4.61f;
+	else if (englishName=="Callisto")
+		return 5.65f;
+	else if (parent->englishName=="Mars")
+		semimajorAxis=1.52371034;
+	else if (parent->englishName=="Jupiter")
+		semimajorAxis=5.202887;
+	else if (parent->englishName=="Saturn")
+		semimajorAxis=9.53667594;
+	else if (parent->englishName=="Uranus")
+		semimajorAxis=19.18916464;
+	else if (parent->englishName=="Neptune")
+		semimajorAxis=30.06992276;
+	else if (parent->englishName=="Pluto")
+		semimajorAxis=39.48211675;
+	else if (pType>= isAsteroid)
+	{
+		if (userDataPtr)
+			semimajorAxis=((CometOrbit*)userDataPtr)->getSemimajorAxis();
+	}
+
+	if (semimajorAxis>0.)
+		return absoluteMagnitude+5*log10(semimajorAxis*(semimajorAxis-1));
+
+	return 100.;
 }
 
 // Computation of the visual magnitude (V band) of the planet.
@@ -1443,6 +1641,8 @@ float Planet::getVMagnitude(const StelCore* core) const
 					return -2.09 + d + phaseDeg*(0.323  - 0.00066*phaseDeg);
 				if (englishName=="Callisto")
 					return -1.05 + d + phaseDeg*(0.078  - 0.00274*phaseDeg);
+				if (absoluteMagnitude!=-99.)
+					return absoluteMagnitude+d;
 
 				break;
 			}
@@ -1568,13 +1768,13 @@ float Planet::getVMagnitude(const StelCore* core) const
 			}
 			case Generic:
 			{
-				// Calculation visual magnitude from phase angle and albedo of the planet
+				// drop down to calculation of visual magnitude from phase angle and albedo of the planet
 				break;
 			}
 		}
 	}
 
-	// This formula seems to give wrong results
+	// This formula seems to give wrong results. Source unknown.
 	const double p = (1.0 - phaseAngle/M_PI) * cos_chi + std::sqrt(1.0 - cos_chi*cos_chi) / M_PI;
 	double F = 2.0 * albedo * radius * radius * p / (3.0*observerPlanetRq*planetRq) * shadowFactor;
 	return -26.73 - 2.5 * std::log10(F);

@@ -244,6 +244,11 @@ public:
 
 	void setNativeName(QString planet) { nativeName = planet; }
 
+	//! Return the absolute magnitude (read from file ssystem.ini)
+	float getAbsoluteMagnitude() const {return absoluteMagnitude;}
+	//! Return the mean opposition magnitude, defined as V(1,0)+5log10(a(a-1))
+	//! A return value of 100 signals invalid result.
+	float getMeanOppositionMagnitude() const;
 	ApparentMagnitudeAlgorithm getApparentMagnitudeAlgorithm() const { return vMagAlgorithm; }
 	const QString getApparentMagnitudeAlgorithmString() const { return vMagAlgorithmMap.value(vMagAlgorithm); }
 	void setApparentMagnitudeAlgorithm(QString algorithm);
@@ -478,6 +483,8 @@ protected:
 	Vec3f haloColor;                 // exclusively used for drawing the planet halo
 
 	float albedo;                    // Planet albedo. Used for magnitude computation (but formula dubious!)
+	float absoluteMagnitude;         // since 2017: V(1,0) from Explanatory Supplement or WGCCRE2009 paper for the planets, H in the H,G magnitude system for Minor planets, H10 for comets.
+					 // This is the apparent visual magnitude when 1AU from sun and observer, with zero phase angle.
 	Mat4d rotLocalToParent;          // GZ2015: was undocumented.
 					 // Apparently this is the axis orientation with respect to the parent body. For planets, this is axis orientation w.r.t. VSOP87A/J2000 ecliptical system.
 	float axisRotation;              // Rotation angle of the Planet on its axis, degrees.

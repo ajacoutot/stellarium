@@ -527,7 +527,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		PlanetP parent;
 		if (strParent!="none")
 		{
-			// Look in the other planets the one named with strParent
+			// Look in the other planets for the one named strParent
 			foreach (const PlanetP& p, systemPlanets)
 			{
 				if (p->getEnglishName()==strParent)
@@ -545,18 +545,23 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		}
 
 		const QString coordFuncName = pd.value(secname+"/coord_func").toString();
-		const QString axisFuncName = pd.value(secname+"/axis_func").toString();
+		//const QString axisFuncName = pd.value(secname+"/axis_func").toString();
 		posFuncType posfunc=NULL;
 		void* userDataPtr=NULL;
 		OsculatingFunctType *osculatingFunc = 0;
-		bool closeOrbit = pd.value(secname+"/closeOrbit", true).toBool();
+		bool closeOrbit = true; //  = pd.value(secname+"/closeOrbit", true).toBool();   2017: THIS ENTRY NO LONGER EXISTS!
+		double semi_major_axis; // used again below.
 
-		if (coordFuncName=="ell_orbit")
+		if (coordFuncName=="ell_orbit") // used for planet moons.
 		{
 			// Read the orbital elements
 			const double epoch = pd.value(secname+"/orbit_Epoch",J2000).toDouble();
 			const double eccentricity = pd.value(secname+"/orbit_Eccentricity").toDouble();
-			if (eccentricity >= 1.0) closeOrbit = false;
+			if (eccentricity >= 1.0)
+			{
+				closeOrbit = false;
+				qWarning() << "SolarSystem::loadPlanets() Planet moon" << englishName << "with eccentricity >=1 found. This is obviously a data error.";
+			}
 			double pericenterDistance = pd.value(secname+"/orbit_PericenterDistance",-1e100).toDouble();
 			double semi_major_axis;
 			if (pericenterDistance <= 0.0) {
@@ -654,7 +659,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			userDataPtr = orb;
 			posfunc = &ellipticalOrbitPosFunc;
 		}
-		else if (coordFuncName=="comet_orbit")
+		else if (coordFuncName=="comet_orbit") // used for minor planets and comets, in orbit around the sun!
 		{
 			// Read the orbital elements
 			// orbit_PericenterDistance,orbit_SemiMajorAxis: given in AU
@@ -665,7 +670,6 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			const double eccentricity = pd.value(secname+"/orbit_Eccentricity",0.0).toDouble();
 			if (eccentricity >= 1.0) closeOrbit = false;
 			double pericenterDistance = pd.value(secname+"/orbit_PericenterDistance",-1e100).toDouble();
-			double semi_major_axis;
 			if (pericenterDistance <= 0.0) {
 				semi_major_axis = pd.value(secname+"/orbit_SemiMajorAxis",-1e100).toDouble();
 				if (semi_major_axis <= -1e100) {
@@ -730,20 +734,20 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			const double parentRotObliquity = parent->getParent() ? parent->getRotObliquity(2451545.0) : 0.0;
 			const double parent_rot_asc_node = parent->getParent() ? parent->getRotAscendingnode() : 0.0;
 			double parent_rot_j2000_longitude = 0.0;
-						if (parent->getParent()) {
-							qDebug() << "Really? A comet orbiting " << pd.value("parent") << "has a greatparent?";
-							const double c_obl = cos(parentRotObliquity);
-							const double s_obl = sin(parentRotObliquity);
-							const double c_nod = cos(parent_rot_asc_node);
-							const double s_nod = sin(parent_rot_asc_node);
-							const Vec3d OrbitAxis0( c_nod,       s_nod,        0.0);
-							const Vec3d OrbitAxis1(-s_nod*c_obl, c_nod*c_obl,s_obl);
-							const Vec3d OrbitPole(  s_nod*s_obl,-c_nod*s_obl,c_obl);
-							const Vec3d J2000Pole(StelCore::matJ2000ToVsop87.multiplyWithoutTranslation(Vec3d(0,0,1)));
-							Vec3d J2000NodeOrigin(J2000Pole^OrbitPole);
-							J2000NodeOrigin.normalize();
-							parent_rot_j2000_longitude = atan2(J2000NodeOrigin*OrbitAxis1,J2000NodeOrigin*OrbitAxis0);
-						}
+			if (parent->getParent()) {
+				qDebug() << "Really? A comet orbiting " << pd.value("parent") << "has a greatparent?";
+				const double c_obl = cos(parentRotObliquity);
+				const double s_obl = sin(parentRotObliquity);
+				const double c_nod = cos(parent_rot_asc_node);
+				const double s_nod = sin(parent_rot_asc_node);
+				const Vec3d OrbitAxis0( c_nod,       s_nod,        0.0);
+				const Vec3d OrbitAxis1(-s_nod*c_obl, c_nod*c_obl,s_obl);
+				const Vec3d OrbitPole(  s_nod*s_obl,-c_nod*s_obl,c_obl);
+				const Vec3d J2000Pole(StelCore::matJ2000ToVsop87.multiplyWithoutTranslation(Vec3d(0,0,1)));
+				Vec3d J2000NodeOrigin(J2000Pole^OrbitPole);
+				J2000NodeOrigin.normalize();
+				parent_rot_j2000_longitude = atan2(J2000NodeOrigin*OrbitAxis1,J2000NodeOrigin*OrbitAxis0);
+			}
 			//qDebug() << "Creating CometOrbit for" << englishName;
 			CometOrbit *orb = new CometOrbit(pericenterDistance,
 							 eccentricity,
@@ -761,110 +765,110 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			posfunc = &cometOrbitPosFunc;
 		}
 
-		if (coordFuncName=="sun_special")
+		else if (coordFuncName=="sun_special")
 			posfunc = &get_sun_helio_coordsv;
 
-		if (coordFuncName=="mercury_special") {
+		else if (coordFuncName=="mercury_special") {
 			posfunc = &get_mercury_helio_coordsv;
 			osculatingFunc = &get_mercury_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="venus_special") {
+		else if (coordFuncName=="venus_special") {
 			posfunc = &get_venus_helio_coordsv;
 			osculatingFunc = &get_venus_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="earth_special") {
+		else if (coordFuncName=="earth_special") {
 			posfunc = &get_earth_helio_coordsv;
 			osculatingFunc = &get_earth_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="lunar_special")
+		else if (coordFuncName=="lunar_special")
 			posfunc = &get_lunar_parent_coordsv;
 
-		if (coordFuncName=="mars_special") {
+		else if (coordFuncName=="mars_special") {
 			posfunc = &get_mars_helio_coordsv;
 			osculatingFunc = &get_mars_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="phobos_special")
+		else if (coordFuncName=="phobos_special")
 			posfunc = posFuncType(get_phobos_parent_coordsv);
 
-		if (coordFuncName=="deimos_special")
+		else if (coordFuncName=="deimos_special")
 			posfunc = &get_deimos_parent_coordsv;
 
-		if (coordFuncName=="jupiter_special") {
+		else if (coordFuncName=="jupiter_special") {
 			posfunc = &get_jupiter_helio_coordsv;
 			osculatingFunc = &get_jupiter_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="europa_special")
+		else if (coordFuncName=="europa_special")
 			posfunc = &get_europa_parent_coordsv;
 
-		if (coordFuncName=="calisto_special")
+		else if (coordFuncName=="calisto_special")
 			posfunc = &get_callisto_parent_coordsv;
 
-		if (coordFuncName=="io_special")
+		else if (coordFuncName=="io_special")
 			posfunc = &get_io_parent_coordsv;
 
-		if (coordFuncName=="ganymede_special")
+		else if (coordFuncName=="ganymede_special")
 			posfunc = &get_ganymede_parent_coordsv;
 
-		if (coordFuncName=="saturn_special") {
+		else if (coordFuncName=="saturn_special") {
 			posfunc = &get_saturn_helio_coordsv;
 			osculatingFunc = &get_saturn_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="mimas_special")
+		else if (coordFuncName=="mimas_special")
 			posfunc = &get_mimas_parent_coordsv;
 
-		if (coordFuncName=="enceladus_special")
+		else if (coordFuncName=="enceladus_special")
 			posfunc = &get_enceladus_parent_coordsv;
 
-		if (coordFuncName=="tethys_special")
+		else if (coordFuncName=="tethys_special")
 			posfunc = &get_tethys_parent_coordsv;
 
-		if (coordFuncName=="dione_special")
+		else if (coordFuncName=="dione_special")
 			posfunc = &get_dione_parent_coordsv;
 
-		if (coordFuncName=="rhea_special")
+		else if (coordFuncName=="rhea_special")
 			posfunc = &get_rhea_parent_coordsv;
 
-		if (coordFuncName=="titan_special")
+		else if (coordFuncName=="titan_special")
 			posfunc = &get_titan_parent_coordsv;
 
-		if (coordFuncName=="iapetus_special")
+		else if (coordFuncName=="iapetus_special")
 			posfunc = &get_iapetus_parent_coordsv;
 
-		if (coordFuncName=="hyperion_special")
+		else if (coordFuncName=="hyperion_special")
 			posfunc = &get_hyperion_parent_coordsv;
 
-		if (coordFuncName=="uranus_special") {
+		else if (coordFuncName=="uranus_special") {
 			posfunc = &get_uranus_helio_coordsv;
 			osculatingFunc = &get_uranus_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="miranda_special")
+		else if (coordFuncName=="miranda_special")
 			posfunc = &get_miranda_parent_coordsv;
 
-		if (coordFuncName=="ariel_special")
+		else if (coordFuncName=="ariel_special")
 			posfunc = &get_ariel_parent_coordsv;
 
-		if (coordFuncName=="umbriel_special")
+		else if (coordFuncName=="umbriel_special")
 			posfunc = &get_umbriel_parent_coordsv;
 
-		if (coordFuncName=="titania_special")
+		else if (coordFuncName=="titania_special")
 			posfunc = &get_titania_parent_coordsv;
 
-		if (coordFuncName=="oberon_special")
+		else if (coordFuncName=="oberon_special")
 			posfunc = &get_oberon_parent_coordsv;
 
-		if (coordFuncName=="neptune_special") {
+		else if (coordFuncName=="neptune_special") {
 			posfunc = posFuncType(get_neptune_helio_coordsv);
 			osculatingFunc = &get_neptune_helio_osculating_coords;
 		}
 
-		if (coordFuncName=="pluto_special")
+		else if (coordFuncName=="pluto_special")
 			posfunc = &get_pluto_helio_coordsv;
 
 
@@ -873,9 +877,6 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			qCritical() << "ERROR : can't find posfunc " << coordFuncName << " for " << englishName;
 			exit(-1);
 		}
-//		if (axisFuncName=="mercury_special"){
-//			//axisFunc =
-//		}
 
 		// Create the Solar System body and add it to the list
 		QString type = pd.value(secname+"/type").toString();		
@@ -893,7 +894,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 						    pd.value(secname+"/albedo").toFloat(),
 						    pd.value(secname+"/tex_map").toString(),
 						    posfunc,
-						    userDataPtr,
+						    userDataPtr, // the CometOrbit object created previously
 						    osculatingFunc,
 						    closeOrbit,
 						    pd.value(secname+"/hidden", 0).toBool(),						    
@@ -930,7 +931,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 				}
 			}
 
-			mp->setSemiMajorAxis(pd.value(secname+"/orbit_SemiMajorAxis", 0).toDouble());
+			mp->deltaJDE = 2.0*semi_major_axis*StelCore::JD_SECOND;
 
 		}
 		else if (type == "comet")
@@ -943,8 +944,8 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			               pd.value(secname+"/albedo").toFloat(),
 			               pd.value(secname+"/tex_map").toString(),
 			               posfunc,
-			               userDataPtr,
-			               osculatingFunc,
+				       userDataPtr,  // the CometOrbit object
+				       osculatingFunc, // ALWAYS NULL for comets.
 			               closeOrbit,
 						   pd.value(secname+"/hidden", 0).toBool(),
 						   type,
@@ -969,15 +970,8 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 					mp->setAbsoluteMagnitudeAndSlope(magnitude, 4.0);
 				}
 			}
-
-			const double eccentricity = pd.value(secname+"/orbit_Eccentricity",0.0).toDouble();
-			const double pericenterDistance = pd.value(secname+"/orbit_PericenterDistance",-1e100).toDouble();
-			if (eccentricity<1 && pericenterDistance>0)
-			{
-				mp->setSemiMajorAxis(pericenterDistance / (1.0-eccentricity));
-			}
 		}
-		else
+		else // type==star|planet|moon|
 		{
 			// Set possible default name of the normal map for avoiding yin-yang shaped moon
 			// phase when normal map key not exists. Example: moon_normals.png
@@ -992,13 +986,14 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 					       pd.value(secname+"/tex_map").toString(),
 					       pd.value(secname+"/normals_map", normalMapName).toString(),
 					       posfunc,
-					       userDataPtr,  // This remains NULL for the major planets!
+					       userDataPtr,  // This remains NULL for the major planets, or has an EllipticalOrbit for planet moons.
 					       osculatingFunc,
 					       closeOrbit,
 					       pd.value(secname+"/hidden", 0).toBool(),
 					       pd.value(secname+"/atmosphere", false).toBool(),
 					       pd.value(secname+"/halo", 0).toBool(),
 					       type));
+			p->absoluteMagnitude = pd.value(secname+"/absolute_magnitude", -99.).toDouble();
 		}
 
 

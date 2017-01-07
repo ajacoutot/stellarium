@@ -125,9 +125,9 @@ private:
 	//! @param xOffset for the dust tail, this may introduce a bend. Units are x per sqrt(z).
 	void computeParabola(const float parameter, const float topradius, const float zshift, QVector<Vec3d>& vertexArr, QVector<float>& texCoordArr, QVector<unsigned short>& indices, const float xOffset=0.0f);
 
-	float absoluteMagnitude;
+	//float absoluteMagnitude; // 2017: now in Planet class already.
 	float slopeParameter;
-	double semiMajorAxis;
+	//double semiMajorAxis;
 	bool isCometFragment;
 	bool nameIsProvisionalDesignation;
 

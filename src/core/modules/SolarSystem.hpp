@@ -43,7 +43,11 @@ typedef QSharedPointer<Planet> PlanetP;
 
 //! @class SolarSystem
 //! This StelObjectModule derivative is used to model SolarSystem bodies.
-//! This includes the Major Planets, Minor Planets and Comets.
+//! This includes the Major Planets (class Planet), Minor Planets (class MinorPlanet) and Comets (class Comet).
+// GZ's documentation attempt, early 2017.
+//! This class and the handling of solar system data has seen many changes, and unfortunately, not much has been consistently documented.
+//! The following is a reverse-engineered analysis.
+//!
 class SolarSystem : public StelObjectModule
 {
 	Q_OBJECT
@@ -77,7 +81,7 @@ class SolarSystem : public StelObjectModule
 		   NOTIFY flagTranslatedNamesChanged)
 
 	//StelProperties
-	Q_PROPERTY(bool planetsDisplayed
+	Q_PROPERTY(bool planetsDisplayed // TODO: rename flagShow with this name.
 		   READ getFlagPlanets
 		   WRITE setFlagPlanets
 		   NOTIFY flagPlanetsDisplayedChanged

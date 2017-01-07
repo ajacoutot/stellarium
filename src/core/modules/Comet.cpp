@@ -82,9 +82,9 @@ Comet::Comet(const QString& englishName,
 		  false, //No atmosphere
 		  true, //halo
 		  pTypeStr),
-	  absoluteMagnitude(0.f),
+	  //absoluteMagnitude(0.f), // now in Planet.
 	  slopeParameter(-10.f), // -10== uninitialized: used in getVMagnitude()
-	  semiMajorAxis(0.),
+	  //semiMajorAxis(0.),
 	  isCometFragment(false),
 	  nameIsProvisionalDesignation(false),
 	  tailFactors(-1., -1.), // mark "invalid"
@@ -156,9 +156,9 @@ QString Comet::getInfoString(const StelCore *core, const InfoStringGroup &flags)
 	if (flags&ObjectType && getPlanetType()!=isUNDEFINED)
 	{
 		QString cometType = qc_("non-periodic", "type of comet");
-		if (semiMajorAxis>0.0)
+		if (((CometOrbit *)userDataPtr)->getEccentricity() != 1.0)
 		{
-			// Parabolic and hyperbolic comets doesn't have semi-major axis of the orbit. We have comet with elliptic orbit.
+			// Parabolic and hyperbolic comets don't have semi-major axis of the orbit. We have comet with elliptic orbit.
 			cometType = qc_("periodic", "type of comet");
 		}
 		oss << q_("Type: <b>%1</b> (%2)").arg(q_(getPlanetTypeString())).arg(cometType) << "<br />";
@@ -273,20 +273,10 @@ QString Comet::getInfoString(const StelCore *core, const InfoStringGroup &flags)
 	return str;
 }
 
-void Comet::setSemiMajorAxis(const double value)
-{
-	semiMajorAxis = value;
-}
-
 double Comet::getSiderealPeriod() const
 {
-	double period;
-	if (semiMajorAxis>0)
-		period = StelUtils::calculateSiderealPeriod(semiMajorAxis);
-	else
-		period = 0;
-
-	return period;
+	double semiMajorAxis=((CometOrbit*)userDataPtr)->getSemimajorAxis();
+	return ((semiMajorAxis>0) ? StelUtils::calculateSiderealPeriod(semiMajorAxis) : 0.);
 }
 
 float Comet::getVMagnitude(const StelCore* core) const
@@ -328,8 +318,8 @@ void Comet::update(int deltaTime)
 	Q_ASSERT(orbit);
 	if (!orbit->objectDateValid(dateJDE)) return; // don't do anything if out of useful date range. This allows having hundreds of comet elements.
 
-	//GZ: I think we can make deltaJDtail adaptive, depending on distance to sun! For some reason though, this leads to a crash!
-	//deltaJDtail=StelCore::JD_SECOND * qMax(1.0, qMin(eclipticPos.length(), 20.0));
+	//GZ: I think we can make deltaJDtail adaptive, depending on distance to sun! For some reason though, this leads to a crash! --> 2017: Add 1 to eclipticPos.length to avoid possible zero result.
+	//deltaJDtail=StelCore::JD_SECOND * qMax(1.0, qMin(eclipticPos.length()+1.0, 20.0));
 
 	if (fabs(lastJDEtail-dateJDE)>deltaJDEtail)
 	{
