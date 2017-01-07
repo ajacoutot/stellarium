@@ -1017,8 +1017,8 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		double J2000NPoleRA1 = pd.value(secname+"/rot_pole_ra1", 0.).toDouble()*M_PI/180.;
 		double J2000NPoleDE  = pd.value(secname+"/rot_pole_de", 0.).toDouble()*M_PI/180.;
 		double J2000NPoleDE1 = pd.value(secname+"/rot_pole_de1", 0.).toDouble()*M_PI/180.;
-		double J2000NPoleW0  = pd.value(secname+"/rot_pole_W0", 0.).toDouble()*M_PI/180.;
-		double J2000NPoleW1  = pd.value(secname+"/rot_pole_W1", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleW0  = pd.value(secname+"/rot_pole_w0", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleW1  = pd.value(secname+"/rot_pole_w1", 0.).toDouble()*M_PI/180.;
 
 		double rotPeriod=pd.value(secname+"/rot_periode", pd.value(secname+"/orbit_Period", 24.).toDouble()).toDouble()/24.;
 		double rotOffset=pd.value(secname+"/rot_rotation_offset",0.).toDouble();
