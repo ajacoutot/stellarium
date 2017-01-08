@@ -217,7 +217,6 @@ CometOrbit::CometOrbit(double pericenterDistance,
 		       double parentRotObliquity,
 		       double parentRotAscendingnode,
 		       double parentRotJ2000Longitude)
-		      //)
 	: q(pericenterDistance),
 	  e(eccentricity),
 	  i(inclination),
@@ -228,7 +227,7 @@ CometOrbit::CometOrbit(double pericenterDistance,
 	  updateTails(true),
 	  orbitGood(orbitGoodDays)
 {
-	// GZ MAKE SURE THIS IS ALWAYS 0/0/0.
+	// GZ MAKE SURE THIS IS ALWAYS 0/0/0. ==> OK.
 	//qDebug() << "parentRotObliquity" << parentRotObliquity << "parentRotAscendingnode" << parentRotAscendingnode << "parentRotJ2000Longitude" << parentRotJ2000Longitude;
 	rdot.set(0.0, 0.0, 0.0);
 	const double c_obl = cos(parentRotObliquity);
@@ -254,7 +253,7 @@ void CometOrbit::positionAtTimevInVSOP87Coordinates(double JDE, double *v, bool 
 {
 	JDE -= t0;
 	double rCosNu,rSinNu;
-	if (e < 1.0) InitEll(q,n,e,JDE,rCosNu,rSinNu); // GZ: After solving with Laguerre-Conway, I dare to go for 1.0.
+	if (e < 1.0) InitEll(q,n,e,JDE,rCosNu,rSinNu); // Laguerre-Conway seems stable enough to go for <1.0.
 	else if (e > 1.0)
 	{
 		// qDebug() << "Hyperbolic orbit for ecc=" << e << ", i=" << i << ", w=" << w << ", Mean Motion n=" << n;
