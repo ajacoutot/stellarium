@@ -887,17 +887,17 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		if ((type == "asteroid" || type == "dwarf planet" || type == "cubewano" || type == "plutino" || type == "scattered disc object" || type == "Oort cloud object") && !englishName.contains("Pluto"))
 		{
 			p = PlanetP(new MinorPlanet(englishName,
-						    pd.value(secname+"/lighting").toBool(),
+						    pd.value(secname+"/lighting", true).toBool(),
 						    pd.value(secname+"/radius").toDouble()/AU,
 						    pd.value(secname+"/oblateness", 0.0).toDouble(),
 						    StelUtils::strToVec3f(pd.value(secname+"/color").toString()),
 						    pd.value(secname+"/albedo").toFloat(),
-						    pd.value(secname+"/tex_map").toString(),
+						    pd.value(secname+"/tex_map", "nomap.png").toString(),
 						    posfunc,
 						    userDataPtr, // the CometOrbit object created previously
 						    osculatingFunc,
 						    closeOrbit,
-						    pd.value(secname+"/hidden", 0).toBool(),						    
+						    pd.value(secname+"/hidden", false).toBool(),
 						    type));
 
 			QSharedPointer<MinorPlanet> mp =  p.dynamicCast<MinorPlanet>();
@@ -937,12 +937,12 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		else if (type == "comet")
 		{
 			p = PlanetP(new Comet(englishName,
-			               pd.value(secname+"/lighting").toBool(),
+				       pd.value(secname+"/lighting", false).toBool(),
 			               pd.value(secname+"/radius").toDouble()/AU,
 			               pd.value(secname+"/oblateness", 0.0).toDouble(),
 			               StelUtils::strToVec3f(pd.value(secname+"/color").toString()),
-			               pd.value(secname+"/albedo").toFloat(),
-			               pd.value(secname+"/tex_map").toString(),
+				       pd.value(secname+"/albedo", 0.075).toFloat(), // assume very dark surface
+				       pd.value(secname+"/tex_map", "nomap.png").toString(),
 			               posfunc,
 				       userDataPtr,  // the CometOrbit object
 				       osculatingFunc, // ALWAYS NULL for comets.
@@ -978,20 +978,20 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			// Details: https://bugs.launchpad.net/stellarium/+bug/1335609
 			QString normalMapName = englishName.toLower().append("_normals.png");
 			p = PlanetP(new Planet(englishName,
-					       pd.value(secname+"/lighting").toBool(),
+					       pd.value(secname+"/lighting", true).toBool(),
 					       pd.value(secname+"/radius").toDouble()/AU,
 					       pd.value(secname+"/oblateness", 0.0).toDouble(),
 					       StelUtils::strToVec3f(pd.value(secname+"/color").toString()),
 					       pd.value(secname+"/albedo").toFloat(),
-					       pd.value(secname+"/tex_map").toString(),
+					       pd.value(secname+"/tex_map", "nomap.png").toString(),
 					       pd.value(secname+"/normals_map", normalMapName).toString(),
 					       posfunc,
 					       userDataPtr,  // This remains NULL for the major planets, or has an EllipticalOrbit for planet moons.
 					       osculatingFunc,
 					       closeOrbit,
-					       pd.value(secname+"/hidden", 0).toBool(),
+					       pd.value(secname+"/hidden", false).toBool(),
 					       pd.value(secname+"/atmosphere", false).toBool(),
-					       pd.value(secname+"/halo", 0).toBool(),
+					       pd.value(secname+"/halo", true).toBool(), // Of course this must default to true for all real objects!
 					       type));
 			p->absoluteMagnitude = pd.value(secname+"/absolute_magnitude", -99.).toDouble();
 		}
@@ -1017,8 +1017,8 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 		double J2000NPoleRA1 = pd.value(secname+"/rot_pole_ra1", 0.).toDouble()*M_PI/180.;
 		double J2000NPoleDE  = pd.value(secname+"/rot_pole_de", 0.).toDouble()*M_PI/180.;
 		double J2000NPoleDE1 = pd.value(secname+"/rot_pole_de1", 0.).toDouble()*M_PI/180.;
-		double J2000NPoleW0  = pd.value(secname+"/rot_pole_w0", 0.).toDouble()*M_PI/180.;
-		double J2000NPoleW1  = pd.value(secname+"/rot_pole_w1", 0.).toDouble()*M_PI/180.;
+		double J2000NPoleW0  = pd.value(secname+"/rot_pole_w0", 0.).toDouble(); // stays in degrees!
+		double J2000NPoleW1  = pd.value(secname+"/rot_pole_w1", 0.).toDouble(); // stays in degrees!
 
 		double rotPeriod=pd.value(secname+"/rot_periode", pd.value(secname+"/orbit_Period", 24.).toDouble()).toDouble()/24.;
 		double rotOffset=pd.value(secname+"/rot_rotation_offset",0.).toDouble();
