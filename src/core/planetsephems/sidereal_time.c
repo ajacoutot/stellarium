@@ -101,18 +101,3 @@ double get_apparent_sidereal_time (double JD, double JDE)
 	return meanSidereal+ (deltaPsi*cos(getPrecessionAngleVondrakEpsilon(JDE) + deltaEps))*180./M_PI;
 }
 
-//// return value in degrees
-//double get_mean_ecliptical_obliquity(double JDE)
-//{
-////	struct ln_nutation nutation;
-////	get_nutation(JDE, &nutation);
-////	return nutation.ecliptic;
-//	return getPrecessionAngleVondrakEpsilon(JDE)*180.0/M_PI;
-//}
-
-//double get_nutation_longitude(double JDE)
-//{
-//	struct ln_nutation nutation;
-//	get_nutation(JDE, &nutation);
-//	return nutation.deltaPsi;
-//}
