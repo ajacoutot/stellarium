@@ -97,8 +97,8 @@ public:
 	double de0;            // [rad] DE_0 declination of north pole      ssystem.ini: rot_pole_de    /180*M_PI
 	double de1;            // [rad/century] rate of change in axis de   ssystem.ini: rot_pole_de1   /180*M_PI
 	// These values are only in the modern algorithms. invalid if W0=0.
-	double W0;             // [rad] mean longitude at epoch.
-	double W1;             // [rad/d] mean longitude motion.
+	double W0;             // [deg] mean longitude of prime meridian along equator measured from intersection with ICRS plane at epoch.
+	double W1;             // [deg/d] mean longitude motion. W=W0+d*W1.
 };
 
 // Class to manage rings for planets like saturn
@@ -231,11 +231,11 @@ public:
 	//! Get the value (1-f) for oblateness f.
 	double getOneMinusOblateness(void) const {return oneMinusOblateness;}
 	//! Get duration of sidereal day (earth days, may come from rot_periode or orbit_period (for moons) from ssystem.ini)
-	double getSiderealDay(void) const { if (re.W1) return 2.*M_PI/re.W1; else return re.period;} // I assume the more modern values are better.
+	double getSiderealDay(void) const { if (re.W1) return 360.0/re.W1; else return re.period;} // I assume the more modern values are better.
 	//! Get duration of sidereal year
 	// must be virtual for Comets.
 	virtual double getSiderealPeriod(void) const { return re.siderealPeriod; }
-	//! Get duration of mean solar day
+	//! Get duration of mean solar day, in earth days.
 	double getMeanSolarDay(void) const;
 
 	const QString& getTextMapName() const {return texMapName;}	
@@ -268,7 +268,8 @@ public:
 	// _obliquity [rad]
 	// _ascendingNode of equator on ecliptic[rad]
 	// ra_pole=_ra0 + T*_ra1. ra_pole and de_pole must be computed more than for initialisation for J2000
-	// de_pole=_de0 + T*_de1
+	// de_pole=_de0 + T*_de1. ra and de values to be stored in [rad]
+	// _w0, _w1 to be given in degrees!
 	// _precessionRate [rad/JulCt] (was only given for earth, and is no longer used!)
 	// _siderealPeriod [earth days] orbital duration. THIS DOES NOT BELONG HERE!
 	void setRotationElements(const float _period, const float _offset, const double _epoch,
@@ -300,7 +301,7 @@ public:
 	double getPhaseAngle(const Vec3d& obsPos) const;
 	//! Get the elongation angle (radians) for an observer at pos obsPos in heliocentric coordinates (in AU)
 	double getElongation(const Vec3d& obsPos) const;
-	//! Get the angular radius (degrees) of the spheroid of the planet (i.e. without the rings)
+	//! Get the angular radius (degrees) of the planet spheroid (i.e. without the rings)
 	double getSpheroidAngularSize(const StelCore* core) const;
 	//! Get the planet phase (illuminated fraction of the planet disk, 0..1) for an observer at pos obsPos in heliocentric coordinates (in AU)
 	float getPhase(const Vec3d& obsPos) const;
