@@ -26,10 +26,12 @@
 #include "Atmosphere.hpp"
 #include "ui_atmosphereDialog.h"
 
-AtmosphereDialog::AtmosphereDialog():
-	skylight(NULL)
+AtmosphereDialog::AtmosphereDialog()
+	: StelDialog("Atmosphere")
+	//, refraction(NULL)
+	//, extinction(NULL)
+	//, skylight(NULL)
 {
-	dialogName = "Atmosphere";
 	ui = new Ui_atmosphereDialogForm;
 }
 

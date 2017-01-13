@@ -29,6 +29,7 @@
 #include <QAbstractButton>
 #include <QComboBox>
 #include <QDialog>
+#include <QGraphicsSceneWheelEvent>
 #include <QMetaProperty>
 #include <QStyleOptionGraphicsItem>
 #include <QSlider>
@@ -38,10 +39,11 @@
 	#include <QScroller>
 #endif
 
-StelDialog::StelDialog(QObject* parent)
+StelDialog::StelDialog(QString dialogName, QObject* parent)
 	: QObject(parent)
 	, dialog(NULL)
 	, proxy(NULL)
+	, dialogName(dialogName)
 {
 	if (parent == NULL)
 		setParent(StelMainView::getInstance().getGuiWidget());

@@ -34,7 +34,7 @@
 
 #include "AstroCalcDialog.hpp"
 #include "ui_astroCalcDialog.h"
-#include "qcustomplot/qcustomplot.h"
+#include "external/qcustomplot/qcustomplot.h"
 
 #include <QFileDialog>
 #include <QDir>
@@ -47,12 +47,11 @@ float AstroCalcDialog::minY = -90.f;
 float AstroCalcDialog::maxY = 90.f;
 
 AstroCalcDialog::AstroCalcDialog(QObject *parent)
-	: StelDialog(parent)
+	: StelDialog("AstroCalc",parent)
 	, currentTimeLine(NULL)
 	, delimiter(", ")
 	, acEndl("\n")
 {
-	dialogName = "AstroCalc";
 	ui = new Ui_astroCalcDialogForm;
 	core = StelApp::getInstance().getCore();
 	solarSystem = GETSTELMODULE(SolarSystem);
@@ -171,6 +170,7 @@ void AstroCalcDialog::createDialogContent()
 	connect(currentTimeLine, SIGNAL(timeout()), this, SLOT(drawCurrentTimeDiagram()));
 	currentTimeLine->start(500); // Update 'now' line position every 0.5 seconds
 
+	connect(solarSystem, SIGNAL(solarSystemDataReloaded()), this, SLOT(updateSolarSystemData()));
 	connect(ui->stackListWidget, SIGNAL(currentItemChanged(QListWidgetItem *, QListWidgetItem *)), this, SLOT(changePage(QListWidgetItem *, QListWidgetItem*)));
 }
 
@@ -721,7 +721,7 @@ void AstroCalcDialog::mouseOverLine(QMouseEvent *event)
 				if (StelApp::getInstance().getFlagShowDecimalDegrees())
 					info = QString("%1<br />%2: %3<br />%4: %5%6").arg(ui->altVsTimePlot->graph(0)->name(), q_("Local Time"), LT, q_("Altitude"), QString::number(y, 'f', 2), QChar(0x00B0));
 				else
-					info = QString("%1<br />%2: %3<br />%4: %5%6").arg(ui->altVsTimePlot->graph(0)->name(), q_("Local Time"), LT, q_("Altitude"), StelUtils::decDegToDmsStr(y), QChar(0x00B0));
+					info = QString("%1<br />%2: %3<br />%4: %5").arg(ui->altVsTimePlot->graph(0)->name(), q_("Local Time"), LT, q_("Altitude"), StelUtils::decDegToDmsStr(y));
 			}
 
 			QToolTip::hideText();
@@ -1527,4 +1527,14 @@ void AstroCalcDialog::updateTabBarListWidgetWidth()
 
 	// Hack to force the window to be resized...
 	ui->stackListWidget->setMinimumWidth(width);
+}
+
+void AstroCalcDialog::updateSolarSystemData()
+{
+	if (dialog)
+	{
+		populateCelestialBodyList();
+		populateGroupCelestialBodyList();
+		currentPlanetaryPositions();
+	}
 }

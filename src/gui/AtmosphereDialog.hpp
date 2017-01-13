@@ -67,10 +67,10 @@ protected:
 
 	Ui_atmosphereDialogForm *ui;
 
-private:
+//private:
 //        Refraction *refraction;
 //        Extinction *extinction;
-	Skylight *skylight;
+//        Skylight *skylight;
 };
 
 #endif // _ATMOSPHEREDIALOG_HPP_
