@@ -128,16 +128,16 @@ void PointerCoordinates::draw(StelCore *core)
 	float my = p.y()-hh; // point 0 in center of the screen, axis Y directed to bottom
 	// calculate position of mouse cursor via position of center of the screen (and invert axis Y)
 	// If coordinates are invalid, don't draw them.
-	bool coordsValid=false;
-	coordsValid = prj->unProject(prj->getViewportPosX()+wh+mx, prj->getViewportPosY()+hh+1-my, mousePosition);
+	bool coordsValid = prj->unProject(prj->getViewportPosX()+wh+mx, prj->getViewportPosY()+hh+1-my, mousePosition);
+	if (coordsValid)
 	{ // Nick Fedoseev patch
 		Vec3d win;
 		prj->project(mousePosition,win);
 		float dx = prj->getViewportPosX()+wh+mx - win.v[0];
 		float dy = prj->getViewportPosY()+hh+1-my - win.v[1];
-		coordsValid = prj->unProject(prj->getViewportPosX()+wh+mx+dx, prj->getViewportPosY()+hh+1-my+dy, mousePosition);
+		prj->unProject(prj->getViewportPosX()+wh+mx+dx, prj->getViewportPosY()+hh+1-my+dy, mousePosition);
 	}
-	if (!coordsValid)
+	else
 		return;
 
 	bool withDecimalDegree = StelApp::getInstance().getFlagShowDecimalDegrees();
