@@ -79,10 +79,10 @@ class StelGLWidget : public QOpenGLWidget
 #endif
 {
 public:
-	StelGLWidget(StelMainView* parent)
+	StelGLWidget(const QSurfaceFormat& fmt, StelMainView* parent)
 		:
 #ifdef USE_OLD_QGLWIDGET
-		  QGLWidget(parent),
+		  QGLWidget(QGLFormat::fromSurfaceFormat(fmt),parent),
 #else
 		  QOpenGLWidget(parent),
 #endif
@@ -90,6 +90,9 @@ public:
 		  initialized(false)
 	{
 		qDebug()<<"StelGLWidget constructor";
+#ifndef USE_OLD_QGLWIDGET
+		setFormat(fmt);
+#endif
 
 		//because we always draw the full background,
 		//lets skip drawing the system background
@@ -329,12 +332,17 @@ protected:
 		//qDebug()<<"dt"<<dt;
 		previousPaintTime = now;
 
-		//update and draw
-		StelApp& app = StelApp::getInstance();
-		app.update(dt);
-
 		//important to call this, or Qt may have invalid state after we have drawn (wrong textures, etc...)
 		painter->beginNativePainting();
+		QOpenGLFunctions* gl = QOpenGLContext::currentContext()->functions();
+
+		//clear the buffer (not strictly required for us because we repaint all pixels, but should improve perf on tile-based renderers)
+		gl->glClearColor(0,0,0,0); //we also clear alpha to zero
+		gl->glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+		//update and draw
+		StelApp& app = StelApp::getInstance();
+		app.update(dt); // may also issue GL calls
 		app.draw();
 		painter->endNativePainting();
 
@@ -467,8 +475,17 @@ private:
 			case QEvent::GraphicsSceneMouseMove:
 				t = QEvent::MouseMove;
 				break;
+			case QEvent::GraphicsSceneMouseDoubleClick:
+				//note: the old code seems to have ignored double clicks
+				// and handled them the same as normal mouse presses
+				//if we ever want to handle double clicks, switch out these lines
+				//t = QEvent::MouseButtonDblClick;
+				t = QEvent::MouseButtonPress;
+				break;
 			default:
-				qFatal("Invalid mouse event type %d",event->type());
+				//warn in release and assert in debug
+				qWarning("Unhandled mouse event type %d",event->type());
+				Q_ASSERT(false);
 		}
 
 		QPointF pos = event->scenePos();
@@ -550,27 +567,28 @@ StelMainView::StelMainView(QSettings* settings)
 	connect(glLogger, SIGNAL(messageLogged(QOpenGLDebugMessage)), this, SLOT(logGLMessage(QOpenGLDebugMessage)));
 #endif
 
+	//get the desired opengl format parameters
+	QSurfaceFormat glFormat = getDesiredGLFormat();
 	// VSync control
-	bool vsync = configuration->value("video/vsync", true).toBool();
+	QVariant vsync = configuration->value("video/vsync");
+	if(vsync.isValid() && vsync.canConvert<bool>()) // if the config parameter is not set we use system default (which should be true)
+		glFormat.setSwapInterval(vsync.toBool());
+
+	qDebug()<<"Desired surface format: "<<glFormat;
+
 #if QT_VERSION >= QT_VERSION_CHECK(5,4,0)
-	// with the QOpenGLWidget, this seems to be needed on the default surface format before creating any windows
-	QSurfaceFormat defFmt = QSurfaceFormat::defaultFormat();
-	defFmt.setSwapInterval(vsync);
+	//we set the default format to our required format, if possible
+	//this only works with Qt 5.4+
+	QSurfaceFormat defFmt = glFormat;
+	//we don't need these buffers in the background
+	defFmt.setAlphaBufferSize(0);
+	defFmt.setStencilBufferSize(0);
+	defFmt.setDepthBufferSize(0);
 	QSurfaceFormat::setDefaultFormat(defFmt);
 #endif
 
-	QSurfaceFormat widgetFormat = getDesiredGLFormat();
-	widgetFormat.setSwapInterval(vsync);
-	glWidget = new StelGLWidget(this);
-	//Set the surface format BEFORE showing the widget
-	//We could also set this as default format instead of just the widget's format,
-	//but I don't know if some background Qt stuff needs another buffer configuration or something,
-	//so let's be safe and just set it here
-#ifdef USE_OLD_QGLWIDGET
-	glWidget->setFormat(QGLFormat::fromSurfaceFormat(widgetFormat));
-#else
-	glWidget->setFormat(widgetFormat);
-#endif
+	//QGLWidget should set the format in constructor to prevent creating an unnecessary temporary context
+	glWidget = new StelGLWidget(glFormat, this);
 	setViewport(glWidget);
 
 	stelScene = new StelGraphicsScene(this);
@@ -661,7 +679,6 @@ QSurfaceFormat StelMainView::getDesiredGLFormat() const
 	//vsync needs to be set on the default format for it to work
 	//fmt.setSwapInterval(0);
 
-	qDebug()<<"Desired surface format: "<<fmt;
 	return fmt;
 }
 
@@ -1308,7 +1325,19 @@ void StelMainView::doScreenshot(void)
 #ifdef USE_OLD_QGLWIDGET
 	QImage im = glWidget->grabFrameBuffer();
 #else
-	QImage im = glWidget->grabFramebuffer();
+	glWidget->makeCurrent();
+	QOpenGLFramebufferObjectFormat fbFormat;
+	fbFormat.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+	QOpenGLFramebufferObject * fbObj = new QOpenGLFramebufferObject(stelScene->width(), stelScene->height(), fbFormat);
+	fbObj->bind();
+	QOpenGLPaintDevice fbObjPaintDev(stelScene->width(), stelScene->height());
+	QPainter painter(&fbObjPaintDev);
+	painter.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+	stelScene->render(&painter);
+	painter.end();
+	QImage im = fbObj->toImage();
+	fbObj->release();
+	delete fbObj;
 #endif
 
 	if (flagInvertScreenShotColors)

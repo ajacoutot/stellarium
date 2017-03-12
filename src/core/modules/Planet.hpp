@@ -200,6 +200,18 @@ public:
 	//! @param flags a set of InfoStringGroup items to include in the return value.
 	//! @return a QString containing an HMTL encoded description of the Planet.
 	virtual QString getInfoString(const StelCore *core, const InfoStringGroup& flags) const;
+	//! In addition to the entries from StelObject::getInfoMap(), Planet objects provide
+	//! - distance
+	//! - phase (result of getPhase)
+	//! - illumination (=100*phase)
+	//! - phase-angle
+	//! - phase-angle-dms (formatted string)
+	//! - phase-angle-deg (formatted string)
+	//! - elongation
+	//! - elongation-dms (formatted string)
+	//! - elongation-deg (formatted string)
+	//! - type (object type description)
+	virtual QVariantMap getInfoMap(const StelCore *core) const;
 	virtual double getCloseViewFov(const StelCore* core) const;
 	virtual double getSatellitesFov(const StelCore* core) const;
 	virtual double getParentSatellitesFov(const StelCore* core) const;
@@ -292,12 +304,12 @@ public:
 	double getRotObliquity(double JDE) const;
 
 
-	// Compute the position in the parent Planet coordinate system
+	//! Compute the position in the parent Planet coordinate system
 	void computePositionWithoutOrbits(const double dateJDE);
 	void computePosition(const double dateJDE);
 
-	// Compute the transformation matrix from the local Planet coordinate to the parent Planet coordinate.
-	// This requires both flavours of JD in cases involving Earth.
+	//! Compute the transformation matrix from the local Planet coordinate to the parent Planet coordinate.
+	//! This requires both flavours of JD in cases involving Earth.
 	void computeTransMatrix(double JD, double JDE);
 
 	//! Get the phase angle (radians) for an observer at pos obsPos in heliocentric coordinates (in AU)

@@ -159,6 +159,9 @@ public slots:
 	void setFlagInitFovUsage(const bool b);
 	bool getFlagInitFovUsage(void) const;
 
+	void setFlagInitDirectionUsage(const bool b);
+	bool getFlagInitDirectionUsage(void) const;
+
 	void setFlagAutosetMountForCCD(const bool b);
 	bool getFlagAutosetMountForCCD(void) const;
 
@@ -288,6 +291,8 @@ private:
 	bool flagSupergalacticPoles;	//!< Flag to track if SupergalacticPoles was displayed at activation.
 	bool flagEquinoxJ2000Points;	//!< Flag to track if EquinoxJ2000Points was displayed at activation.
 	bool flagEquinoxPoints;		//!< Flag to track if EquinoxPoints was displayed at activation.
+	bool flagSolsticeJ2000Points;	//!< Flag to track if SolsticeJ2000Points was displayed at activation.
+	bool flagSolsticePoints;	//!< Flag to track if SolsticePoints was displayed at activation.
 
 	bool flagAdaptation;		//!< Flag to track if adaptationCheckbox was enabled at activation.
 
@@ -297,8 +302,6 @@ private:
 	float magLimitDSOs;		//!< Value of limited magnitude for DSOs
 	bool flagLimitPlanets;		//!< Flag to track limit magnitude for planets, asteroids, comets etc.
 	float magLimitPlanets;		//!< Value of limited magnitude for planets, asteroids, comets etc.
-	float relativeStarScale;
-	float absoluteStarScale;
 
 	bool flagMoonScale;		//!< Flag to track of usage zooming of the Moon
 
@@ -351,6 +354,7 @@ private:
 	double actualFOV;		//!< Holds the FOV of the ocular/tescope/lens cobination; what the screen is zoomed to.
 	double initialFOV;		//!< Holds the initial FOV
 	bool flagInitFOVUsage;		//!< Flag used to track if we use default initial FOV (value at the startup of planetarium).
+	bool flagInitDirectionUsage;	//!< Flag used to track if we use default initial direction (value at the startup of planetarium).
 	bool flagAutosetMountForCCD;	//!< Flag used to track if we use automatic switch to type of mount for CCD frame
 	bool equatorialMountEnabled;
 	double reticleRotation;
