@@ -96,9 +96,6 @@ public:
 	//! as the same parameters in MinorPlanet.
 	void setAbsoluteMagnitudeAndSlope(const float magnitude, const float slope);
 
-	//! set value for semi-major axis in AU
-	void setSemiMajorAxis(const double value);
-
 	//! get sidereal period for comet, days, or returns 0 if not possible (paraboloid, hyperboloid orbit)
 	virtual double getSiderealPeriod() const;
 
