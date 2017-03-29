@@ -183,9 +183,12 @@ void Planet::init()
 		vMagAlgorithmMap.clear();
 	}
 	vMagAlgorithmMap.insert(Planet::Expl_Sup_2013,	"ExpSup2013");
-	vMagAlgorithmMap.insert(Planet::Expl_Sup_1992,	"planesas"); // TODO: Rename the other strings. BETTER: Use the metaobject!
-	vMagAlgorithmMap.insert(Planet::Mueller_1893,	"mueller");
-	vMagAlgorithmMap.insert(Planet::Astr_Alm_1984,	"harris");
+	vMagAlgorithmMap.insert(Planet::Expl_Sup_1992,	"planesas"); // deprecate in 0.16, remove later. TODO: Rename the other strings. BETTER: Use the metaobject!
+	vMagAlgorithmMap.insert(Planet::Expl_Sup_1992,	"ExpSup1992");
+	vMagAlgorithmMap.insert(Planet::Mueller_1893,	"mueller");     // deprecate in 0.16, remove later.
+	vMagAlgorithmMap.insert(Planet::Mueller_1893,	"Mueller1893"); // better name
+	vMagAlgorithmMap.insert(Planet::Astr_Alm_1984,	"harris");      // deprecate in 0.16, remove later
+	vMagAlgorithmMap.insert(Planet::Astr_Alm_1984,	"AstrAlm1984"); // consistent name
 	vMagAlgorithmMap.insert(Planet::Generic,	"generic"),
 	vMagAlgorithmMap.insert(Planet::UndefinedAlgorithm, "");
 
