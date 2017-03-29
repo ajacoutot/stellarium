@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: stellarium\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2017-02-15 02:48+0700\n"
-"PO-Revision-Date: 2016-12-17 10:22+0000\n"
+"POT-Creation-Date: 2017-03-21 23:22+0700\n"
+"PO-Revision-Date: 2017-03-13 05:55+0000\n"
 "Last-Translator: Tanmoy Saha <Unknown>\n"
 "Language-Team: Bengali <bn@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2017-02-15 05:29+0000\n"
-"X-Generator: Launchpad (build 18326)\n"
+"X-Launchpad-Export-Date: 2017-03-22 05:49+0000\n"
+"X-Generator: Launchpad (build 18334)\n"
 
 #: skycultures/translations.fab:9
 #: skycultures/korean/constellation_names.eng.fab:30
@@ -856,7 +856,7 @@ msgstr "মেরোপ নীহারিকা"
 
 #: nebulae/default/names.dat:47
 msgid "Tempel's Nebula"
-msgstr ""
+msgstr "টেম্পেলের নীহারিকা"
 
 #: nebulae/default/names.dat:48
 msgid "California Nebula"
@@ -868,7 +868,7 @@ msgstr "উটের চোখ নীহারিকা"
 
 #: nebulae/default/names.dat:50
 msgid "Jolly Roger Cluster"
-msgstr ""
+msgstr "জলি রজার তারকাগুচ্ছ"
 
 #: nebulae/default/names.dat:51
 msgid "Crystal Ball Nebula"
@@ -948,7 +948,7 @@ msgstr "ট্যারেনটুলা নীহারিকা"
 
 #: nebulae/default/names.dat:72
 msgid "Looped Nebula"
-msgstr ""
+msgstr "ফাঁস নীহারিকা"
 
 #: nebulae/default/names.dat:73
 msgid "True Lovers' Knot"
@@ -1009,7 +1009,7 @@ msgstr "প্রজাপতি নীহারিকা"
 
 #: nebulae/default/names.dat:87
 msgid "Hourglass Planetary Nebula"
-msgstr ""
+msgstr "বালিঘড়ি নীহারিকা"
 
 #: nebulae/default/names.dat:88
 msgid "Thor's Helmet"
@@ -1017,7 +1017,7 @@ msgstr "থর এর শিরস্ত্রাণ"
 
 #: nebulae/default/names.dat:89
 msgid "Duck Nebula"
-msgstr ""
+msgstr "পাতিহাঁস নীহারিকা"
 
 #: nebulae/default/names.dat:90
 msgid "Caroline's Cluster"
@@ -8904,48 +8904,48 @@ msgid "Night Star (Venus)"
 msgstr "নিশিতার (শুক্র)"
 
 #: skycultures/tongan/constellation_names.eng.fab:1
-msgid "Toloatonga"
-msgstr "তেলোয়াতোংয়া"
+msgid "Southern Wild Duck"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:2
-msgid "Lua tangata"
-msgstr "লুয়া তাংয়াতা"
+msgid "Two Men"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:3
-msgid "Toloa"
-msgstr "তোলোয়া"
+msgid "Wild Duck"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:4
-msgid "Tu'ulalupe"
-msgstr "তুউল্লালুপে"
+msgid "Pigeon Perch"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:5
-msgid "Toloalahi"
-msgstr "তোলোয়ালাহি"
+msgid "Big Wild Duck"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:6
-msgid "Fungasia"
-msgstr "ফুংয়াসিয়া"
+msgid "Mound Top"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:7
-msgid "Tuinga ika"
-msgstr "তুইংয়া ইকা"
+msgid "String of fishes"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:8
-msgid "Houmatoloa"
-msgstr "হোউমাতোলোয়া"
+msgid "Wild Duck's Point of Land"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:9
-msgid "Fatanalua"
-msgstr "ফাতানালুয়া"
+msgid "Two Carriers"
+msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:10
-msgid "ʻAo ʻo ʻUvea"
+msgid "Cloud of 'Uvea"
 msgstr ""
 
 #: skycultures/tongan/constellation_names.eng.fab:11
-msgid "Kapakau'o'tafahi"
-msgstr "কাপাকাউওতাফাহি"
+msgid "Wing of Tafahi"
+msgstr ""
 
 #: skycultures/tongan/star_names.fab:1
 msgid "Ma'afutoka"
@@ -12029,6 +12029,9 @@ msgstr "বিটা সেন্টুরি"
 #~ msgid "Triangulum galaxy"
 #~ msgstr "ত্রিভূজ নক্ষত্রলোক"
 
+#~ msgid "Houmatoloa"
+#~ msgstr "হোউমাতোলোয়া"
+
 #~ msgid "τ Canis Majoris cluster"
 #~ msgstr "টাউ কুকুর মন্ডল তারকাগুচ্ছ"
 
@@ -12080,11 +12083,38 @@ msgstr "বিটা সেন্টুরি"
 #~ msgid "Oglechkutepi"
 #~ msgstr "ওগ্লেছকুতেপি"
 
+#~ msgid "Toloa"
+#~ msgstr "তোলোয়া"
+
+#~ msgid "Lua tangata"
+#~ msgstr "লুয়া তাংয়াতা"
+
+#~ msgid "Toloatonga"
+#~ msgstr "তেলোয়াতোংয়া"
+
+#~ msgid "Tu'ulalupe"
+#~ msgstr "তুউল্লালুপে"
+
+#~ msgid "Fungasia"
+#~ msgstr "ফুংয়াসিয়া"
+
+#~ msgid "Toloalahi"
+#~ msgstr "তোলোয়ালাহি"
+
 #~ msgid "La'a"
 #~ msgstr "লাআঃ"
 
 #~ msgid "Ae e'Uvea"
 #~ msgstr "আয়ে উভ্ভেয়া"
+
+#~ msgid "Kapakau'o'tafahi"
+#~ msgstr "কাপাকাউওতাফাহি"
+
+#~ msgid "Fatanalua"
+#~ msgstr "ফাতানালুয়া"
+
+#~ msgid "Tuinga ika"
+#~ msgstr "তুইংয়া ইকা"
 
 #~ msgid "Mahina"
 #~ msgstr "মাহিনা"

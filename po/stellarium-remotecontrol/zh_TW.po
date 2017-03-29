@@ -7,15 +7,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: stellarium\n"
 "Report-Msgid-Bugs-To: FULL NAME <EMAIL@ADDRESS>\n"
-"POT-Creation-Date: 2017-01-16 20:12+0700\n"
+"POT-Creation-Date: 2017-03-21 23:22+0700\n"
 "PO-Revision-Date: 2017-02-18 05:11+0000\n"
 "Last-Translator: Freeman Li <freeman.tam@gmail.com>\n"
 "Language-Team: Chinese (Traditional) <zh_TW@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"X-Launchpad-Export-Date: 2017-02-19 05:27+0000\n"
-"X-Generator: Launchpad (build 18326)\n"
+"X-Launchpad-Export-Date: 2017-03-22 06:08+0000\n"
+"X-Generator: Launchpad (build 18334)\n"
 
 #: plugins/RemoteControl/webroot/js/api/actions.js:60
 msgid "Could not retrieve action list"
@@ -124,7 +124,7 @@ msgstr "輸入並未匹配任何項目"
 msgid "No current selection"
 msgstr "目前並無選取任何天體"
 
-#: plugins/RemoteControl/webroot/js/ui/scripts.js:76 index.html:478
+#: plugins/RemoteControl/webroot/js/ui/scripts.js:76 index.html:498
 #: tablet7in.html:629
 msgid "-none-"
 msgstr "- 無 -"
@@ -309,109 +309,101 @@ msgstr "冥王星"
 msgid "Current selection"
 msgstr "目前的選取"
 
-#: index.html:205 tablet7in.html:325
-msgid "Planets and satellites"
-msgstr "行星與衛星"
-
-#: index.html:206 tablet7in.html:326
-msgid "Show Solar System objects"
-msgstr "顯示太陽系天體"
-
-#: index.html:237 tablet7in.html:362
+#: index.html:242 tablet7in.html:361
 msgid "ZHR:"
 msgstr "ZHR:"
 
-#: index.html:281 tablet7in.html:412
+#: index.html:288 tablet7in.html:413
 msgid ""
 "Instantaneous circles of earth´s axis on its motion around ecliptical poles. "
 "Displayed on Earth only."
 msgstr "地軸圍繞黃極轉旋轉的瞬時圓，僅顯示於地球。"
 
-#: index.html:290 tablet7in.html:421
+#: index.html:297 tablet7in.html:422
 msgid "Solstices"
 msgstr "二至點"
 
-#: index.html:291 tablet7in.html:422
+#: index.html:298 tablet7in.html:423
 msgid "Crossquarters"
 msgstr "切四分點"
 
-#: index.html:292 tablet7in.html:423
+#: index.html:299 tablet7in.html:424
 msgid "Major Standstill"
 msgstr "主要停頓點"
 
-#: index.html:293 tablet7in.html:424
+#: index.html:300 tablet7in.html:425
 msgid "Minor Standstill"
 msgstr "次要停頓點"
 
-#: index.html:303 tablet7in.html:434
+#: index.html:310 tablet7in.html:435
 msgid "Current Planet:"
 msgstr "目前的行星:"
 
-#: index.html:397 tablet7in.html:531
+#: index.html:413 tablet7in.html:530
 msgid "Bright Nebulae"
 msgstr "明亮星雲"
 
-#: index.html:398 tablet7in.html:532
+#: index.html:414 tablet7in.html:531
 msgid "Dark Nebulae"
 msgstr "暗星雲"
 
-#: index.html:399 tablet7in.html:533
+#: index.html:415 tablet7in.html:532
 msgid "Planetary Nebulae"
 msgstr "行星狀星雲"
 
-#: index.html:405 tablet7in.html:542
+#: index.html:424 tablet7in.html:541
 msgid "Labels and markers"
 msgstr "標籤與標記"
 
-#: index.html:433 tablet7in.html:570
+#: index.html:453 tablet7in.html:570
 msgid "Show illumination"
 msgstr "顯示光害"
 
-#: index.html:438 tablet7in.html:576
+#: index.html:458 tablet7in.html:576
 msgid "Current landscape"
 msgstr "目前的地景"
 
-#: index.html:465 tablet7in.html:604
+#: index.html:485 tablet7in.html:604
 msgid "Current sky culture"
 msgstr "目前的星空述語"
 
-#: index.html:478 tablet7in.html:629
+#: index.html:498 tablet7in.html:629
 msgid "Active script:"
 msgstr "執行中的腳本(script):"
 
-#: index.html:479 tablet7in.html:630
+#: index.html:499 tablet7in.html:630
 msgid "Run selected script"
 msgstr "執行選取的腳本"
 
-#: index.html:479 tablet7in.html:630
+#: index.html:499 tablet7in.html:630
 msgid "Stop current script"
 msgstr "停止目前的腳本"
 
-#: index.html:484 tablet7in.html:41 tablet7in.html:614
+#: index.html:504 tablet7in.html:41 tablet7in.html:614
 msgid "Actions"
 msgstr "操控"
 
-#: index.html:488 tablet7in.html:618
+#: index.html:508 tablet7in.html:618
 msgid "Run/toggle action"
 msgstr "執行/切換開關 指令"
 
-#: index.html:499 tablet7in.html:653
+#: index.html:519 tablet7in.html:653
 msgid "Planet map"
 msgstr "行星地圖"
 
-#: index.html:500 tablet7in.html:654
+#: index.html:520 tablet7in.html:654
 msgid "Planet map pointer"
 msgstr "行星地圖指標"
 
-#: index.html:504 tablet7in.html:658
+#: index.html:524 tablet7in.html:658
 msgid "Type to search location"
 msgstr "輸入以搜尋位置"
 
-#: index.html:549 tablet7in.html:704
+#: index.html:569 tablet7in.html:704
 msgid "No response from server"
 msgstr "伺服器沒有回應"
 
-#: index.html:550
+#: index.html:570
 msgid ""
 "No response from server since %1 seconds. Is Stellarium still running?"
 msgstr "從 %1 秒前開始伺服器就沒有回應，Stellarium 是否仍在運行？"

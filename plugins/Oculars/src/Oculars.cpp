@@ -289,7 +289,7 @@ void Oculars::deinit()
 	settings->sync();
 
 	disconnect(this, SIGNAL(selectedOcularChanged()), this, SLOT(updateOcularReticle()));
-	disconnect(&StelApp::getInstance(), SIGNAL(colorSchemeChanged(const QString&)), this, SLOT(setStelStyle(const QString&)));
+	//disconnect(&StelApp::getInstance(), SIGNAL(colorSchemeChanged(const QString&)), this, SLOT(setStelStyle(const QString&)));
 	disconnect(&StelApp::getInstance(), SIGNAL(languageChanged()), this, SLOT(retranslateGui()));
 }
 
@@ -369,20 +369,6 @@ double Oculars::getCallOrder(StelModuleActionName actionName) const
 	}
 
 	return order;
-}
-
-const StelStyle Oculars::getModuleStyleSheet(const StelStyle& style)
-{
-	StelStyle pluginStyle(style);
-	if (StelApp::getInstance().getVisionModeNight())
-	{
-		pluginStyle.qtStyleSheet.append(nightStyleSheet);
-	}
-	else
-	{
-		pluginStyle.qtStyleSheet.append(normalStyleSheet);
-	}
-	return pluginStyle;
 }
 
 void Oculars::handleMouseClicks(class QMouseEvent* event)
@@ -483,7 +469,7 @@ void Oculars::handleKeys(QKeyEvent* event)
 				{
 					reticleRotation -= (1.0 * multiplier);
 				}
-				qDebug() << reticleRotation;
+				//qDebug() << reticleRotation;
 				consumeEvent = true;
 				break;
 		}
@@ -675,31 +661,8 @@ void Oculars::init()
 		ready = false;
 	}
 
-	//Load the module's custom style sheets
-	QFile styleSheetFile;
-	styleSheetFile.setFileName(":/ocular/normalStyle.css");
-	if(styleSheetFile.open(QFile::ReadOnly|QFile::Text))
-	{
-		normalStyleSheet = styleSheetFile.readAll();
-	}
-	styleSheetFile.close();
-	styleSheetFile.setFileName(":/ocular/nightStyle.css");
-	if(styleSheetFile.open(QFile::ReadOnly|QFile::Text))
-	{
-		nightStyleSheet = styleSheetFile.readAll();
-	}
-	styleSheetFile.close();
-	connect(&StelApp::getInstance(), SIGNAL(colorSchemeChanged(const QString&)), this, SLOT(setStelStyle(const QString&)));
 	connect(&StelApp::getInstance(), SIGNAL(languageChanged()), this, SLOT(retranslateGui()));
 	connect(this, SIGNAL(selectedOcularChanged()), this, SLOT(updateOcularReticle()));
-}
-
-void Oculars::setStelStyle(const QString&)
-{
-	if(ocularDialog)
-	{
-		ocularDialog->updateStyle();
-	}
 }
 
 /* ****************************************************************************************************************** */
@@ -1005,20 +968,12 @@ void Oculars::decrementOcularIndex()
 			// reject the change
 			selectedOcularIndex++;
 		}
-		else if (selectedTelescopeIndex == -1)
-		{
+
+		if (selectedTelescopeIndex == -1)
 			selectedTelescopeIndex = 0;
-			emit(selectedOcularChanged());
-		}
-		else
-		{
-			emit(selectedOcularChanged());
-		}
 	}
-	else
-	{
-		emit(selectedOcularChanged());
-	}
+
+	emit(selectedOcularChanged());
 }
 
 void Oculars::decrementTelescopeIndex()
@@ -1048,10 +1003,6 @@ void Oculars::decrementLensIndex()
 void Oculars::displayPopupMenu()
 {
 	QMenu * popup = new QMenu(&StelMainView::getInstance());
-	StelGui * gui = dynamic_cast<StelGui*>(StelApp::getInstance().getGui());
-	Q_ASSERT(gui);
-	//qDebug() << "[Oculars]" << this->getModuleStyleSheet(gui->getStelStyle()).qtStyleSheet;
-	popup->setStyleSheet(this->getModuleStyleSheet(gui->getStelStyle()).qtStyleSheet);
 
 	if (flagShowOculars)
 	{
@@ -1077,21 +1028,13 @@ void Oculars::displayPopupMenu()
 				}
 				//BM: Does this happen at all any more?
 				QAction* action = 0;
-				if (selectedTelescopeIndex == -1)
+				if (selectedTelescopeIndex != -1 || oculars[index]->isBinoculars())
 				{
-					if (oculars[index]->isBinoculars())
-					{
 						action = submenu->addAction(label, ocularsSignalMapper, SLOT(map()));
 						availableOcularCount++;
 						ocularsSignalMapper->setMapping(action, QString("%1").arg(index));
-					}
 				}
-				else
-				{
-					action = submenu->addAction(label, ocularsSignalMapper, SLOT(map()));
-					availableOcularCount++;
-					ocularsSignalMapper->setMapping(action, QString("%1").arg(index));
-				}
+
 				if (action && index == selectedOcularIndex)
 				{
 					action->setCheckable(true);
@@ -1238,20 +1181,12 @@ void Oculars::incrementOcularIndex()
 			// reject the change
 			selectedOcularIndex++;
 		}
-		else if (selectedTelescopeIndex == -1)
-		{
+
+		if (selectedTelescopeIndex == -1)
 			selectedTelescopeIndex = 0;
-			emit(selectedOcularChanged());
-		}
-		else
-		{
-			emit(selectedOcularChanged());
-		}
 	}
-	else
-	{
-		emit(selectedOcularChanged());
-	}
+
+	emit(selectedOcularChanged());
 }
 
 void Oculars::incrementTelescopeIndex()
@@ -1312,27 +1247,13 @@ void Oculars::selectOcularAtIndex(QString indexString)
 {
 	int index = indexString.toInt();
 
-	// validate the new selection
-	if (oculars[index]->isBinoculars())
+	if (selectedTelescopeIndex == -1)
+		selectedTelescopeIndex = 0;
+
+	if (telescopes.count() != 0 || oculars[index]->isBinoculars())
 	{
 		selectedOcularIndex = index;
 		emit(selectedOcularChanged());
-	}
-	else
-	{
-		if ( selectedTelescopeIndex == -1 && telescopes.count() == 0)
-		{
-			// reject the change
-		}
-		else
-		{
-			if (selectedTelescopeIndex == -1)
-			{
-				selectedTelescopeIndex = 0;
-			}
-			selectedOcularIndex = index;
-			emit(selectedOcularChanged());
-		}
 	}
 }
 
@@ -1682,7 +1603,7 @@ void Oculars::paintCCDBounds()
 					projector->unProject(centerScreen[0], centerScreen[1], centerPosition);
 					double cx, cy;
 					QString cxt, cyt;
-					StelUtils::rectToSphe(&cx,&cy,core->equinoxEquToJ2000(centerPosition)); // Calculate RA/DE (J2000.0) and show it...
+					StelUtils::rectToSphe(&cx,&cy,core->equinoxEquToJ2000(centerPosition, StelCore::RefractionOff)); // Calculate RA/DE (J2000.0) and show it...
 					bool withDecimalDegree = StelApp::getInstance().getFlagShowDecimalDegrees();
 					if (withDecimalDegree)
 					{
@@ -1869,11 +1790,7 @@ void Oculars::paintText(const StelCore* core)
 	{
 		telescope = telescopes[selectedTelescopeIndex];
 	}
-	Lens *lens = NULL;
-	if(selectedLensIndex != -1)
-	{
-		lens = lense[selectedLensIndex];
-	}
+	Lens *lens = selectedLens();
 
 	// set up the color and the GL state
 	painter.setColor(0.8f, 0.48f, 0.f, 1.f);
@@ -1914,13 +1831,12 @@ void Oculars::paintText(const StelCore* core)
 		
 		if (!ocular->isBinoculars())
 		{
-			QString eFocalLength = QVariant(ocular->effectiveFocalLength()).toString();
 			// TRANSLATORS: FL = Focal length
-			QString eFocalLengthLabel = QString(q_("Ocular FL: %1 mm")).arg(eFocalLength);
+			QString eFocalLengthLabel = QString(q_("Ocular FL: %1 mm")).arg(QString::number(ocular->effectiveFocalLength(), 'f', 1));
 			painter.drawText(xPosition, yPosition, eFocalLengthLabel);
 			yPosition-=lineHeight;
 			
-			QString ocularFov = QString::number(ocular->appearentFOV());
+			QString ocularFov = QString::number(ocular->appearentFOV(), 'f', 2);
 			ocularFov.append(QChar(0x00B0));//Degree sign
 			// TRANSLATORS: aFOV = apparent field of view
 			QString ocularFOVLabel = QString(q_("Ocular aFOV: %1")).arg(ocularFov);
@@ -1948,44 +1864,40 @@ void Oculars::paintText(const StelCore* core)
 			painter.drawText(xPosition, yPosition, lensNumberLabel);
 			yPosition-=lineHeight;
 
-			// The telescope
-			QString telescopeString = "";
-			QString magString = "";
-			QString fovString = "";
-			QString exitPupil = "";
-
 			if (telescope!=NULL)
 			{
 				QString telescopeName = telescope->name();
+				QString telescopeString = "";
 
 				if (telescopeName.isEmpty())
 					telescopeString = QString("%1").arg(selectedTelescopeIndex);
 				else
 					telescopeString = QString("%1: %2").arg(selectedTelescopeIndex).arg(telescopeName);
 
+				painter.drawText(xPosition, yPosition, QString(q_("Telescope #%1")).arg(telescopeString));
+				yPosition-=lineHeight;
+
 				// General info
-				if (lens!=NULL)
+				double mag = ocular->magnification(telescope, lens);
+				QString magString = QString::number(mag, 'f', 1);
+				magString.append(QChar(0x00D7));//Multiplication sign
+
+				painter.drawText(xPosition, yPosition, QString(q_("Magnification: %1")).arg(magString));
+				yPosition-=lineHeight;
+
+				if (mag>0)
 				{
-					magString = QString::number(((int)(ocular->magnification(telescope, lens) * 10.0)) / 10.0);
-					magString.append(QChar(0x00D7));//Multiplication sign
+					QString exitPupil = QString::number(telescope->diameter()/mag, 'f', 2);
 
-					fovString = QString::number(((int)(ocular->actualFOV(telescope, lens) * 10000.00)) / 10000.0);
-					fovString.append(QChar(0x00B0));//Degree sign
-
-					exitPupil = QString::number(telescope->diameter()/ocular->magnification(telescope, lens), 'f', 2);
+					painter.drawText(xPosition, yPosition, QString(q_("Exit pupil: %1 mm")).arg(exitPupil));
+					yPosition-=lineHeight;
 				}
+
+				QString fovString = QString::number(ocular->actualFOV(telescope, lens), 'f', 5);
+				fovString.append(QChar(0x00B0));//Degree sign
+
+				painter.drawText(xPosition, yPosition, QString(q_("FOV: %1")).arg(fovString));
 			}
-
-			painter.drawText(xPosition, yPosition, QString(q_("Telescope #%1")).arg(telescopeString));
-			yPosition-=lineHeight;
-
-			painter.drawText(xPosition, yPosition, QString(q_("Magnification: %1")).arg(magString));
-			yPosition-=lineHeight;
-
-			painter.drawText(xPosition, yPosition, QString(q_("Exit pupil: %1 mm")).arg(exitPupil));
-			yPosition-=lineHeight;
-
-			painter.drawText(xPosition, yPosition, QString(q_("FOV: %1")).arg(fovString));
 		}
 	}
 
@@ -1997,7 +1909,7 @@ void Oculars::paintText(const StelCore* core)
 		QString telescopeName = "";
 		double fovX = 0.0;
 		double fovY = 0.0;
-		if (telescope!=NULL && lens!=NULL)
+		if (telescope!=NULL)
 		{
 			fovX = ccd->getActualFOVx(telescope, lens);
 			fovY = ccd->getActualFOVy(telescope, lens);

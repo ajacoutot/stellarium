@@ -303,7 +303,6 @@ public:
 	// TODO: decide if this is always angle between axis and J2000 ecliptic, or should be axis//current ecliptic!
 	double getRotObliquity(double JDE) const;
 
-
 	//! Compute the position in the parent Planet coordinate system
 	void computePositionWithoutOrbits(const double dateJDE);
 	void computePosition(const double dateJDE);

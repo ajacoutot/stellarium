@@ -1657,15 +1657,20 @@ float Planet::getVMagnitude(const StelCore* core) const
 			case Expl_Sup_2013:
 			{
 				// GZ2017: This is taken straight from the Explanatory Supplement to the Astronomical Ephemeris 2013 (chap. 10.3)
+				// AW2017: Updated data from Errata in The Explanatory Supplement to the Astronomical Almanac (3rd edition, 1st printing)
+				//         http://aa.usno.navy.mil/publications/docs/exp_supp_errata.pdf (Last update: 1 December 2016)
 				if (englishName=="Mercury")
-					return -0.6 + d +  (((3.02e-6*phaseDeg -0.000488)*phaseDeg + 0.0498)*phaseDeg);
+					return -0.6 + d + (((3.02e-6*phaseDeg - 0.000488)*phaseDeg + 0.0498)*phaseDeg);
 				if (englishName=="Venus")
 				{ // there are two regions strongly enclosed per phaseDeg (2.7..163.6..170.2). However, we must deliver a solution for every case.
 					if (phaseDeg<163.6)
-						return -5.18 + d + ((0.13e-6*phaseDeg +0.000057)*phaseDeg + 0.0103)*phaseDeg;
+						return -4.47 + d + ((0.13e-6*phaseDeg + 0.000057)*phaseDeg + 0.0103)*phaseDeg;
 					else
-						return 0.17 + d -0.0096*phaseDeg;
+						return 0.98 + d -0.0102*phaseDeg;
 				}
+				// This is the first available set to have a magnitude for Earth. Maybe allow this also if current location not on Earth?
+				if (englishName=="Earth")
+					return -3.87 + d + (((0.48e-6*phaseDeg + 0.000019)*phaseDeg + 0.0130)*phaseDeg);
 				if (englishName=="Mars")
 					return -1.52 + d + 0.016*phaseDeg;
 				if (englishName=="Jupiter")
@@ -1687,11 +1692,11 @@ float Planet::getVMagnitude(const StelCore* core) const
 					return -8.88 + d + 0.044*phaseDeg + rings;
 				}
 				if (englishName=="Uranus")
-					return -7.19 + d + 0.0028*phaseDeg;
+					return -7.19 + d + 0.002*phaseDeg;
 				if (englishName=="Neptune")
-					return -6.87 + d + 0.041*phaseDeg;
+					return -6.87 + d;
 				if (englishName=="Pluto")
-					return -1.0  + d + 0.041*phaseDeg;
+					return -1.01 + d;
 				if (englishName=="Io")
 					return -1.68 + d + phaseDeg*(0.46   - 0.0010*phaseDeg);
 				if (englishName=="Europa")
@@ -1700,9 +1705,8 @@ float Planet::getVMagnitude(const StelCore* core) const
 					return -2.09 + d + phaseDeg*(0.323  - 0.00066*phaseDeg);
 				if (englishName=="Callisto")
 					return -1.05 + d + phaseDeg*(0.078  - 0.00274*phaseDeg);
-				if (absoluteMagnitude!=-99.)
+				if ((absoluteMagnitude!=-99.) && (englishName!="Moon"))
 					return absoluteMagnitude+d;
-
 				break;
 			}
 
@@ -1789,7 +1793,7 @@ float Planet::getVMagnitude(const StelCore* core) const
 
 				break;
 			}
-			case Astr_Alm_1984:			
+			case Astr_Alm_1984:
 			{
 				// (2)
 				if (englishName=="Mercury")
@@ -1833,7 +1837,7 @@ float Planet::getVMagnitude(const StelCore* core) const
 		}
 	}
 
-	// This formula seems to give wrong results. Source unknown.
+	// This formula source is unknown. But this is actually used even for the Moon!
 	const double p = (1.0 - phaseAngle/M_PI) * cos_chi + std::sqrt(1.0 - cos_chi*cos_chi) / M_PI;
 	double F = 2.0 * albedo * radius * radius * p / (3.0*observerPlanetRq*planetRq) * shadowFactor;
 	return -26.73 - 2.5 * std::log10(F);
@@ -2274,7 +2278,6 @@ void Planet::draw3dModel(StelCore* core, StelProjector::ModelViewTranformP trans
 				}
 				// Special case for the Moon. Was 1.6, but this often is too bright.
 				light.diffuse = Vec4f(fovFactor,magFactorGreen*fovFactor,magFactorBlue*fovFactor,1.f);
-
 			}
 		}
 		else
@@ -2288,8 +2291,12 @@ void Planet::draw3dModel(StelCore* core, StelProjector::ModelViewTranformP trans
 
 		// possibly tint sun's color from extinction. This should deliberately cause stronger reddening than for the other objects.
 		if (this==ssm->getSun())
-			sPainter->setColor(1.2f, pow(0.75f, extinctedMag)*1.2f, pow(0.42f, 0.9f*extinctedMag)*1.2f);
-
+		{
+			// when we zoom in, reduce the overbrightness. (LP:#1421173)
+			const float fov=core->getProjection(transfo)->getFov();
+			const float overbright=qMin(2.0f, qMax(0.85f,0.5f*fov)); // scale full brightness to 0.85...2. (<2 when fov gets under 4 degrees)
+			sPainter->setColor(overbright, pow(0.75f, extinctedMag)*overbright, pow(0.42f, 0.9f*extinctedMag)*overbright);
+		}
 
 		if (rings)
 		{
