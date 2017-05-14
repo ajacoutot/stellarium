@@ -89,6 +89,7 @@ Satellites::Satellites()
 	, autoRemoveEnabled(false)
 	, updateFrequencyHours(0)
 	, messageTimer(0)
+	, iridiumFlaresPredictionDepth(7)
 {
 	setObjectName("Satellites");
 	configDialog = new SatellitesDialog();
@@ -253,10 +254,13 @@ double Satellites::getCallOrder(StelModuleActionName actionName) const
 	return 0;
 }
 
-QList<StelObjectP> Satellites::searchAround(const Vec3d& av, double limitFov, const StelCore*) const
+QList<StelObjectP> Satellites::searchAround(const Vec3d& av, double limitFov, const StelCore* core) const
 {
 	QList<StelObjectP> result;
-	if (!hintFader || StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+	if (!hintFader)
+		return result;
+
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
 		return result;
 
 	Vec3d v(av);
@@ -281,7 +285,11 @@ QList<StelObjectP> Satellites::searchAround(const Vec3d& av, double limitFov, co
 
 StelObjectP Satellites::searchByNameI18n(const QString& nameI18n) const
 {
-	if (!hintFader || StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+	if (!hintFader)
+		return NULL;
+
+	StelCore* core = StelApp::getInstance().getCore();
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
 		return NULL;
 	
 	QString objw = nameI18n.toUpper();
@@ -304,7 +312,11 @@ StelObjectP Satellites::searchByNameI18n(const QString& nameI18n) const
 
 StelObjectP Satellites::searchByName(const QString& englishName) const
 {
-	if (!hintFader || StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+	if (!hintFader)
+		return NULL;
+
+	StelCore* core = StelApp::getInstance().getCore();
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
 		return NULL;
 
 	QString objw = englishName.toUpper();
@@ -327,7 +339,11 @@ StelObjectP Satellites::searchByName(const QString& englishName) const
 
 StelObjectP Satellites::searchByNoradNumber(const QString &noradNumber) const
 {
-	if (!hintFader || StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+	if (!hintFader)
+		return NULL;
+
+	StelCore* core = StelApp::getInstance().getCore();
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
 		return NULL;
 	
 	// If the search string is a catalog number...
@@ -352,13 +368,12 @@ StelObjectP Satellites::searchByNoradNumber(const QString &noradNumber) const
 QStringList Satellites::listMatchingObjects(const QString& objPrefix, int maxNbItem, bool useStartOfWords, bool inEnglish) const
 {
 	QStringList result;
-	if (!hintFader
-		|| maxNbItem <= 0
-		|| StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName()
-		|| !isValidRangeDates())
-	{
+	if (!hintFader || maxNbItem <= 0)
 		return result;
-	}
+
+	StelCore* core = StelApp::getInstance().getCore();
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
+		return result;
 
 	QString objw = objPrefix.toUpper();
 
@@ -403,7 +418,12 @@ QStringList Satellites::listMatchingObjects(const QString& objPrefix, int maxNbI
 QStringList Satellites::listAllObjects(bool inEnglish) const
 {
 	QStringList result;
-	if (!hintFader || StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+
+	if (!hintFader)
+		return result;
+
+	StelCore* core = StelApp::getInstance().getCore();
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
 		return result;
 
 	if (inEnglish)
@@ -610,6 +630,7 @@ void Satellites::loadSettings()
 	updatesEnabled = conf->value("updates_enabled", true).toBool();
 	autoAddEnabled = conf->value("auto_add_enabled", true).toBool();
 	autoRemoveEnabled = conf->value("auto_remove_enabled", true).toBool();
+	iridiumFlaresPredictionDepth = conf->value("flares_prediction_depth", 7).toInt();
 
 	// Get a font for labels
 	labelFont.setPixelSize(conf->value("hint_font_size", 10).toInt());
@@ -640,6 +661,7 @@ void Satellites::saveSettings()
 	conf->setValue("updates_enabled", updatesEnabled );
 	conf->setValue("auto_add_enabled", autoAddEnabled);
 	conf->setValue("auto_remove_enabled", autoRemoveEnabled);
+	conf->setValue("flares_prediction_depth", iridiumFlaresPredictionDepth);
 
 	// Get a font for labels
 	conf->setValue("hint_font_size", labelFont.pixelSize());
@@ -1583,7 +1605,9 @@ void Satellites::update(double deltaTime)
 	// Separated because first test should be very fast.
 	if (!hintFader && hintFader.getInterstate() <= 0.)
 		return;
-	if (StelApp::getInstance().getCore()->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+
+	StelCore *core = StelApp::getInstance().getCore();
+	if (core->getCurrentPlanet() != earth || !isValidRangeDates(core))
 		return;
 
 	hintFader.update((int)(deltaTime*1000));
@@ -1600,7 +1624,8 @@ void Satellites::draw(StelCore* core)
 	// Separated because first test should be very fast.
 	if (!hintFader && hintFader.getInterstate() <= 0.)
 		return;
-	if (core->getCurrentLocation().planetName != earth->getEnglishName() || !isValidRangeDates())
+
+	if (core->getCurrentPlanet()!=earth || !isValidRangeDates(core))
 		return;
 
 	StelProjectorP prj = core->getProjection(StelCore::FrameAltAz, StelCore::RefractionAuto);
@@ -1677,10 +1702,10 @@ bool Satellites::checkJsonFileFormat()
 
 }
 
-bool Satellites::isValidRangeDates() const
+bool Satellites::isValidRangeDates(const StelCore *core) const
 {
 	bool ok;
-	double tJD = StelApp::getInstance().getCore()->getJD();
+	double tJD = core->getJD();
 	double uJD = StelUtils::getJulianDayFromISO8601String(lastUpdate.toString(Qt::ISODate), &ok);
 	if (lastUpdate.isNull()) // No updates yet?
 		uJD = tJD;
@@ -1782,7 +1807,7 @@ IridiumFlaresPredictionList Satellites::getIridiumFlaresPrediction()
 	bool isTimeNow = pcore->getIsTimeNow();
 
 	double predictionJD = currentJD - 1.;  //  investigate what's seen recently// yesterday
-	double predictionEndJD = currentJD + 7.; // 7 days interval
+	double predictionEndJD = currentJD + getIridiumFlaresPredictionDepth(); // 7 days interval by default
 	pcore->setJD(predictionJD);
 
 	bool useSouthAzimuth = StelApp::getInstance().getFlagSouthAzimuthUsage();

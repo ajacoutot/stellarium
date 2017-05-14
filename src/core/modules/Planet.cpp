@@ -1140,19 +1140,23 @@ float Planet::getVMagnitude(const StelCore* core) const
 
 		switch (core->getCurrentPlanet()->getApparentMagnitudeAlgorithm())
 		{
-			case UndefinedAlgorithm:	// The most recent solution should be activated by default
+			case UndefinedAlgorithm:	// The most recent solution should be activated by default			
 			case Expl_Sup_2013:
 			{
 				// GZ2017: This is taken straight from the Explanatory Supplement to the Astronomical Ephemeris 2013 (chap. 10.3)
+				// AW2017: Updated data from Errata in The Explanatory Supplement to the Astronomical Almanac (3rd edition, 1st printing)
+				//         http://aa.usno.navy.mil/publications/docs/exp_supp_errata.pdf (Last update: 1 December 2016)
 				if (englishName=="Mercury")
-					return -0.6 + d +  (((3.02e-6*phaseDeg -0.000488)*phaseDeg + 0.0498)*phaseDeg);
+					return -0.6 + d + (((3.02e-6*phaseDeg - 0.000488)*phaseDeg + 0.0498)*phaseDeg);
 				if (englishName=="Venus")
 				{ // there are two regions strongly enclosed per phaseDeg (2.7..163.6..170.2). However, we must deliver a solution for every case.
 					if (phaseDeg<163.6)
-						return -5.18 + d + ((0.13e-6*phaseDeg +0.000057)*phaseDeg + 0.0103)*phaseDeg;
+						return -4.47 + d + ((0.13e-6*phaseDeg + 0.000057)*phaseDeg + 0.0103)*phaseDeg;
 					else
-						return 0.17 + d -0.0096*phaseDeg;
+						return 0.98 + d -0.0102*phaseDeg;
 				}
+				if (englishName=="Earth")
+					return -3.87 + d + (((0.48e-6*phaseDeg + 0.000019)*phaseDeg + 0.0130)*phaseDeg);
 				if (englishName=="Mars")
 					return -1.52 + d + 0.016*phaseDeg;
 				if (englishName=="Jupiter")
@@ -1174,11 +1178,11 @@ float Planet::getVMagnitude(const StelCore* core) const
 					return -8.88 + d + 0.044*phaseDeg + rings;
 				}
 				if (englishName=="Uranus")
-					return -7.19 + d + 0.0028*phaseDeg;
+					return -7.19 + d + 0.002*phaseDeg;
 				if (englishName=="Neptune")
-					return -6.87 + d + 0.041*phaseDeg;
+					return -6.87 + d;
 				if (englishName=="Pluto")
-					return -1.0  + d + 0.041*phaseDeg;
+					return -1.01 + d;
 				if (englishName=="Io")
 					return -1.68 + d + phaseDeg*(0.46   - 0.0010*phaseDeg);
 				if (englishName=="Europa")
@@ -1187,7 +1191,7 @@ float Planet::getVMagnitude(const StelCore* core) const
 					return -2.09 + d + phaseDeg*(0.323  - 0.00066*phaseDeg);
 				if (englishName=="Callisto")
 					return -1.05 + d + phaseDeg*(0.078  - 0.00274*phaseDeg);
-				if (absoluteMagnitude!=-99.)
+				if ((absoluteMagnitude!=-99.) && (englishName!="Moon"))
 					return absoluteMagnitude+d;
 
 				break;
@@ -1320,7 +1324,7 @@ float Planet::getVMagnitude(const StelCore* core) const
 		}
 	}
 
-	// This formula seems to give wrong results. Source unknown.
+	// This formula source is unknown. But this is actually used even for the Moon!
 	const double p = (1.0 - phaseAngle/M_PI) * cos_chi + std::sqrt(1.0 - cos_chi*cos_chi) / M_PI;
 	double F = 2.0 * albedo * radius * radius * p / (3.0*observerPlanetRq*planetRq) * shadowFactor;
 	return -26.73 - 2.5 * std::log10(F);

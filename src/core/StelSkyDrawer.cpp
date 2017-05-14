@@ -30,6 +30,10 @@
 #include "StelMovementMgr.hpp"
 #include "StelPainter.hpp"
 
+#include "StelModuleMgr.hpp"
+#include "LandscapeMgr.hpp"
+#include "Landscape.hpp"
+
 #include <QOpenGLContext>
 #include <QOpenGLShaderProgram>
 #include <QStringList>
@@ -328,7 +332,7 @@ float StelSkyDrawer::pointSourceLuminanceToMag(float lum)
 }
 
 // Compute the luminance for an extended source with the given surface brightness in Vmag/arcmin^2
-float StelSkyDrawer::surfacebrightnessToLuminance(float sb)
+float StelSkyDrawer::surfaceBrightnessToLuminance(float sb)
 {
 	return 2.f*2025000.f*std::exp(-0.92103f*(sb + 12.12331f))/(1.f/60.f*1.f/60.f);
 }
@@ -429,10 +433,6 @@ bool StelSkyDrawer::drawPointSource(StelPainter* sPainter, const Vec3f& v, const
 	if (rcMag.radius<=0.f)
 		return false;
 
-	// Why do we need Vec3d here? Try with Vec3f win.
-//	Vec3d win;
-//	if (!(checkInScreen ? sPainter->getProjector()->projectCheck(Vec3d(v[0],v[1],v[2]), win) : sPainter->getProjector()->project(Vec3d(v[0],v[1],v[2]), win)))
-//		return false;
 	Vec3f win;
 	if (!(checkInScreen ? sPainter->getProjector()->projectCheck(v, win) : sPainter->getProjector()->project(v, win)))
 		return false;
@@ -562,7 +562,16 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3f& v, flo
 		if (wl>0)
 		{
 			const float fov = core->getMovementMgr()->getCurrentFov();
-			reportLuminanceInFov(qMin(700.f, qMin(wl/50, (60.f*60.f)/(fov*fov)*6.f)));
+			// Report to the SkyDrawer that a very bright object (most notably Sun, Moon, bright planet)
+			// is in view. LP:1138533 correctly wants no such effect if object is hidden by landscape horizon.
+			LandscapeMgr* lmgr=GETSTELMODULE(LandscapeMgr);
+			Q_ASSERT(lmgr);
+			Landscape *landscape=lmgr->getCurrentLandscape();
+			Q_ASSERT(landscape);
+			// Preliminary: create new Vec3d here. Later: consider replacing to vec3d in the arguments!
+			Vec3d vec(v[0], v[1], v[2]);
+			float opacity=(landscape->getFlagShow() ? landscape->getOpacity(core->j2000ToAltAz(vec, StelCore::RefractionAuto)) : 0.0f);
+			reportLuminanceInFov(qMin(700.f, qMin(wl/50, (60.f*60.f)/(fov*fov)*6.f))*(1.0f-opacity));
 		}
 	}
 

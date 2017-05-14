@@ -404,7 +404,8 @@ void SearchDialog::setHasSelectedFlag()
 void SearchDialog::enableSimbadSearch(bool enable)
 {
 	useSimbad = enable;	
-	conf->setValue("search/flag_search_online", useSimbad);	
+	conf->setValue("search/flag_search_online", useSimbad);
+	ui->simbadStatusLabel->clear();
 }
 
 void SearchDialog::enableStartOfWordsAutofill(bool enable)
@@ -464,7 +465,7 @@ void SearchDialog::manualPositionChanged()
 		case equatorial:
 		{
 			StelUtils::spheToRect(spinLong, spinLat, pos);
-			pos = core->equinoxEquToJ2000(pos);
+			pos = core->equinoxEquToJ2000(pos, StelCore::RefractionOff);
 
 			if ( (mountMode==StelMovementMgr::MountEquinoxEquatorial) && (fabs(spinLat)> (0.9*M_PI/2.0)) )
 			{
@@ -527,7 +528,7 @@ void SearchDialog::manualPositionChanged()
 			double ra, dec;
 			StelUtils::eclToEqu(spinLong, spinLat, core->getCurrentPlanet()->getRotObliquity(core->getJDE()), &ra, &dec);
 			StelUtils::spheToRect(ra, dec, pos);
-			pos = core->equinoxEquToJ2000(pos);
+			pos = core->equinoxEquToJ2000(pos, StelCore::RefractionOff);
 			break;
 		}
 	}

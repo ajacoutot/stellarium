@@ -56,6 +56,7 @@
 #include <QWidget>
 #include <QWindow>
 #include <QMessageBox>
+#include <QStandardPaths>
 #ifdef Q_OS_WIN
 	#include <QPinchGesture>
 #endif
@@ -211,11 +212,13 @@ protected:
 		Q_ASSERT(parent->glContext() == QOpenGLContext::currentContext());
 		QOpenGLFunctions* gl = QOpenGLContext::currentContext()->functions();
 
+		QPaintDevice* paintDevice = painter->device();
+
 		int mainFBO;
 		gl->glGetIntegerv(GL_FRAMEBUFFER_BINDING, &mainFBO);
 
-		int pixelRatio = painter->device()->devicePixelRatio();
-		QSize size(painter->device()->width() * pixelRatio, painter->device()->height() * pixelRatio);
+		int pixelRatio = paintDevice->devicePixelRatio();
+		QSize size(paintDevice->width() * pixelRatio, paintDevice->height() * pixelRatio);
 		if (fbo && fbo->size() != size)
 		{
 			delete fbo;
@@ -229,15 +232,25 @@ protected:
 			fbo = new QOpenGLFramebufferObject(size, format);
 		}
 
-		fbo->bind();
-		QOpenGLPaintDevice device(size);
-		QPainter fboPainter(&device);
-		drawSource(&fboPainter);
-		//dont use QOpenGLFramebufferObject::release here
-		gl->glBindFramebuffer(GL_FRAMEBUFFER,mainFBO);
+		// we have to use our own paint device
+		// we need this because using the original paint device (QOpenGLWidgetPaintDevice when used with QOpenGLWidget) will rebind the default FBO randomly
+		// but using 2 GL painters at the same time can mess up the GL state, so we should close the old one first
 
-		painter->save();
-		painter->beginNativePainting();
+		// stop drawing to the old paint device to make sure state is reset correctly
+		painter->end();
+
+		// create our paint device
+		QOpenGLPaintDevice fboPaintDevice(size);
+		fboPaintDevice.setDevicePixelRatio(pixelRatio);
+
+		fbo->bind();
+		painter->begin(&fboPaintDevice);
+		drawSource(painter);
+		painter->end();
+
+		painter->begin(paintDevice);
+
+		//painter->beginNativePainting();
 		program->bind();
 		const GLfloat pos[] = {-1, -1, +1, -1, -1, +1, +1, +1};
 		const GLfloat texCoord[] = {0, 0, 1, 0, 0, 1, 1, 1};
@@ -249,8 +262,7 @@ protected:
 		gl->glBindTexture(GL_TEXTURE_2D, fbo->texture());
 		gl->glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 		program->release();
-		painter->endNativePainting();
-		painter->restore();
+		//painter->endNativePainting();
 	}
 
 private:
@@ -334,6 +346,13 @@ protected:
 
 		//important to call this, or Qt may have invalid state after we have drawn (wrong textures, etc...)
 		painter->beginNativePainting();
+
+		//fix for bug 1628072 caused by QTBUG-56798
+#ifndef QT_NO_DEBUG
+		StelOpenGL::clearGLErrors();
+#endif
+
+
 		QOpenGLFunctions* gl = QOpenGLContext::currentContext()->functions();
 
 		//clear the buffer (not strictly required for us because we repaint all pixels, but should improve perf on tile-based renderers)
@@ -1306,6 +1325,11 @@ void StelMainView::closeEvent(QCloseEvent* event)
 //! Delete openGL textures (to call before the GLContext disappears)
 void StelMainView::deinitGL()
 {
+	//fix for bug 1628072 caused by QTBUG-56798
+#ifndef QT_NO_DEBUG
+	StelOpenGL::clearGLErrors();
+#endif
+
 	stelApp->deinit();
 	delete gui;
 	gui = NULL;
@@ -1342,6 +1366,28 @@ void StelMainView::doScreenshot(void)
 
 	if (flagInvertScreenShotColors)
 		im.invertPixels();
+
+	if (StelFileMgr::getScreenshotDir().isEmpty())
+	{
+		qWarning() << "Oops, the directory for screenshots is not set! Let's try create and set it...";
+		// Create a directory for screenshots if main/screenshot_dir option is unset and user do screenshot at the moment!
+		QString screenshotDirSuffix = "/Stellarium";
+		QString screenshotDir;
+		if (!QStandardPaths::standardLocations(QStandardPaths::PicturesLocation).isEmpty())
+			screenshotDir = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation)[0].append(screenshotDirSuffix);
+		else
+			screenshotDir = StelFileMgr::getUserDir().append(screenshotDirSuffix);
+
+		try
+		{
+			StelFileMgr::setScreenshotDir(screenshotDir);
+			StelApp::getInstance().getSettings()->setValue("main/screenshot_dir", screenshotDir);
+		}
+		catch (std::runtime_error &e)
+		{
+			qDebug("Error: cannot create screenshot directory: %s", e.what());
+		}
+	}
 
 	if (screenShotDir == "")
 		shotDir = QFileInfo(StelFileMgr::getScreenshotDir());

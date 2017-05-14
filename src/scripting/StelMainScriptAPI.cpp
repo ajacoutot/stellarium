@@ -24,6 +24,7 @@
 #include "StelLocaleMgr.hpp"
 
 #include "ConstellationMgr.hpp"
+#include "AsterismMgr.hpp"
 #include "GridLinesMgr.hpp"
 #include "LandscapeMgr.hpp"
 #include "SporadicMeteorMgr.hpp"
@@ -52,6 +53,7 @@
 #include "StelGuiBase.hpp"
 #include "MilkyWay.hpp"
 #include "ZodiacalLight.hpp"
+#include "ToastMgr.hpp"
 
 #include <QDateTime>
 #include <QDebug>
@@ -859,25 +861,20 @@ double StelMainScriptAPI::jdFromDateString(const QString& dt, const QString& spe
 
 void StelMainScriptAPI::wait(double t) {
 	QEventLoop loop;
-	QTimer timer;
-	timer.setInterval(1000*t);
-	connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
-	timer.start();
+	QTimer::singleShot(1000*t, &loop, SLOT(quit()));
 	loop.exec();
 }
 
 void StelMainScriptAPI::waitFor(const QString& dt, const QString& spec)
 {
 	double deltaJD = jdFromDateString(dt, spec) - getJDay();
-	double timeSpeed = getTimeRate();
-	if (timeSpeed == 0.) { qDebug() << "waitFor() called with no time passing - would be infinite. not waiting!"; return;}
-	QEventLoop loop;
-	QTimer timer;
-	int interval=1000*deltaJD*86400/timeSpeed;
+	double timeRate = getTimeRate();
+	if (timeRate == 0.) { qDebug() << "waitFor() called with no time passing - would be infinite. Not waiting!"; return;}
+	int interval=1000*deltaJD*86400/timeRate;
+	if (interval<=0){ qDebug() << "waitFor() called, but negative interval. (time exceeded before starting timer). Not waiting!"; return; }
 	//qDebug() << "timeSpeed is" << timeSpeed << " interval:" << interval;
-	timer.setInterval(interval);
-	connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
-	timer.start();
+	QEventLoop loop;
+	QTimer::singleShot(interval, &loop, SLOT(quit()));
 	loop.exec();
 }
 
@@ -929,6 +926,7 @@ void StelMainScriptAPI::clear(const QString& state)
 	SporadicMeteorMgr* mmgr = GETSTELMODULE(SporadicMeteorMgr);
 	StelSkyDrawer* skyd = StelApp::getInstance().getCore()->getSkyDrawer();
 	ConstellationMgr* cmgr = GETSTELMODULE(ConstellationMgr);
+	AsterismMgr* amgr = GETSTELMODULE(AsterismMgr);
 	StarMgr* smgr = GETSTELMODULE(StarMgr);
 	NebulaMgr* nmgr = GETSTELMODULE(NebulaMgr);
 	GridLinesMgr* glmgr = GETSTELMODULE(GridLinesMgr);
@@ -980,6 +978,8 @@ void StelMainScriptAPI::clear(const QString& state)
 		cmgr->setFlagLabels(false);
 		cmgr->setFlagBoundaries(false);
 		cmgr->setFlagArt(false);
+		amgr->setFlagLines(false);
+		amgr->setFlagLabels(false);
 		smgr->setFlagLabels(false);
 		ssmgr->setFlagLabels(false);
 		nmgr->setFlagHints(false);
@@ -1028,6 +1028,8 @@ void StelMainScriptAPI::clear(const QString& state)
 		cmgr->setFlagLabels(true);
 		cmgr->setFlagBoundaries(true);
 		cmgr->setFlagArt(false);
+		amgr->setFlagLines(false);
+		amgr->setFlagLabels(false);
 		smgr->setFlagLabels(true);
 		ssmgr->setFlagLabels(true);
 		nmgr->setFlagHints(true);		
@@ -1076,6 +1078,8 @@ void StelMainScriptAPI::clear(const QString& state)
 		cmgr->setFlagLabels(false);
 		cmgr->setFlagBoundaries(false);
 		cmgr->setFlagArt(false);
+		amgr->setFlagLines(false);
+		amgr->setFlagLabels(false);
 		smgr->setFlagLabels(false);
 		ssmgr->setFlagLabels(false);
 		nmgr->setFlagHints(false);
@@ -1124,6 +1128,8 @@ void StelMainScriptAPI::clear(const QString& state)
 		cmgr->setFlagLabels(false);
 		cmgr->setFlagBoundaries(false);
 		cmgr->setFlagArt(false);
+		amgr->setFlagLines(false);
+		amgr->setFlagLabels(false);
 		smgr->setFlagLabels(false);
 		ssmgr->setFlagLabels(false);
 		nmgr->setFlagHints(false);
@@ -1172,6 +1178,8 @@ void StelMainScriptAPI::clear(const QString& state)
 		cmgr->setFlagLabels(false);
 		cmgr->setFlagBoundaries(false);
 		cmgr->setFlagArt(false);
+		amgr->setFlagLines(false);
+		amgr->setFlagLabels(false);
 		smgr->setFlagLabels(false);
 		ssmgr->setFlagLabels(false);
 		nmgr->setFlagHints(false);
@@ -1208,7 +1216,7 @@ double StelMainScriptAPI::getViewAzimuthAngle()
 
 double StelMainScriptAPI::getViewRaAngle()
 {
-	const Vec3d& current = StelApp::getInstance().getCore()->j2000ToEquinoxEqu(GETSTELMODULE(StelMovementMgr)->getViewDirectionJ2000());
+	const Vec3d& current = StelApp::getInstance().getCore()->j2000ToEquinoxEqu(GETSTELMODULE(StelMovementMgr)->getViewDirectionJ2000(), StelCore::RefractionOff);
 	double ra, dec;
 	StelUtils::rectToSphe(&ra, &dec, current);
 	// returned RA angle is in range -PI .. PI, but we want 0 .. 360
@@ -1217,7 +1225,7 @@ double StelMainScriptAPI::getViewRaAngle()
 
 double StelMainScriptAPI::getViewDecAngle()
 {
-	const Vec3d& current = StelApp::getInstance().getCore()->j2000ToEquinoxEqu(GETSTELMODULE(StelMovementMgr)->getViewDirectionJ2000());
+	const Vec3d& current = StelApp::getInstance().getCore()->j2000ToEquinoxEqu(GETSTELMODULE(StelMovementMgr)->getViewDirectionJ2000(), StelCore::RefractionOff);
 	double ra, dec;
 	StelUtils::rectToSphe(&ra, &dec, current);
 	return dec*180/M_PI; // convert to degrees from radians
@@ -1284,11 +1292,11 @@ void StelMainScriptAPI::moveToRaDec(const QString& ra, const QString& dec, float
 	StelMovementMgr::MountMode mountMode=mvmgr->getMountMode();
 	Vec3d aimUp;
 	if ( (mountMode==StelMovementMgr::MountEquinoxEquatorial) && (fabs(dDec)> (0.9*M_PI/2.0)) )
-		aimUp=core->equinoxEquToJ2000(Vec3d(-cos(dRa), -sin(dRa), 0.) * (dDec>0. ? 1. : -1. ));
+		aimUp=core->equinoxEquToJ2000(Vec3d(-cos(dRa), -sin(dRa), 0.) * (dDec>0. ? 1. : -1. ), StelCore::RefractionOff);
 	else
-		aimUp=core->equinoxEquToJ2000(Vec3d(0., 0., 1.));
+		aimUp=core->equinoxEquToJ2000(Vec3d(0., 0., 1.), StelCore::RefractionOff);
 
-	mvmgr->moveToJ2000(StelApp::getInstance().getCore()->equinoxEquToJ2000(aim), aimUp, duration);
+	mvmgr->moveToJ2000(StelApp::getInstance().getCore()->equinoxEquToJ2000(aim, StelCore::RefractionOff), aimUp, duration);
 }
 
 void StelMainScriptAPI::moveToRaDecJ2000(const QString& ra, const QString& dec, float duration)
@@ -1377,6 +1385,16 @@ int StelMainScriptAPI::getBortleScaleIndex() const
 void StelMainScriptAPI::setBortleScaleIndex(int index)
 {
 	StelApp::getInstance().getCore()->getSkyDrawer()->setBortleScaleIndex(index);
+}
+
+void StelMainScriptAPI::setDSSMode(bool b)
+{
+	GETSTELMODULE(ToastMgr)->setFlagSurveyShow(b);
+}
+
+bool StelMainScriptAPI::isDSSModeEnabled() const
+{
+	return GETSTELMODULE(ToastMgr)->getFlagSurveyShow();
 }
 
 QVariantMap StelMainScriptAPI::getScreenXYFromAltAzi(const QString &alt, const QString &azi)

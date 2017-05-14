@@ -39,6 +39,7 @@
 #include "StelActionMgr.hpp"
 #include "StelPropertyMgr.hpp"
 #include "StelFileMgr.hpp"
+#include "StelMainView.hpp"
 #include "EphemWrapper.hpp"
 #include "precession.h"
 
@@ -187,7 +188,7 @@ void StelCore::init()
 	if (!ctz.isEmpty())
 		setUseCustomTimeZone(true);
 	else
-		ctz = getCurrentLocation().timeZone;
+		ctz = getCurrentLocation().ianaTimeZone;
 	setCurrentTimeZone(ctz);
 
 	// Delta-T stuff
@@ -766,14 +767,26 @@ Vec3d StelCore::supergalacticToJ2000(const Vec3d& v) const
 	return matSupergalacticToJ2000*v;
 }
 
-Vec3d StelCore::equinoxEquToJ2000(const Vec3d& v) const
+Vec3d StelCore::equinoxEquToJ2000(const Vec3d& v, RefractionMode refMode) const
 {
-	return matEquinoxEquToJ2000*v;
+	if (refMode==RefractionOff || skyDrawer==NULL || (refMode==RefractionAuto && skyDrawer->getFlagHasAtmosphere()==false))
+		return matEquinoxEquToJ2000*v;
+	Vec3d r(v);
+	r.transfo4d(matEquinoxEquToAltAz);
+	skyDrawer->getRefraction().backward(r);
+	r.transfo4d(matAltAzToJ2000);
+	return r;
 }
 
-Vec3d StelCore::j2000ToEquinoxEqu(const Vec3d& v) const
+Vec3d StelCore::j2000ToEquinoxEqu(const Vec3d& v, RefractionMode refMode) const
 {
-	return matJ2000ToEquinoxEqu*v;
+	if (refMode==RefractionOff || skyDrawer==NULL || (refMode==RefractionAuto && skyDrawer->getFlagHasAtmosphere()==false))
+		return matJ2000ToEquinoxEqu*v;
+	Vec3d r(v);
+	r.transfo4d(matJ2000ToAltAz);
+	skyDrawer->getRefraction().forward(r);
+	r.transfo4d(matAltAzToEquinoxEqu);
+	return r;
 }
 
 Vec3d StelCore::j2000ToJ1875(const Vec3d& v) const
@@ -931,6 +944,7 @@ void StelCore::updateTransformMatrices()
 	matEquinoxEquToJ2000 = matVsop87ToJ2000 * position->getRotEquatorialToVsop87();
 	matJ2000ToEquinoxEqu = matEquinoxEquToJ2000.transpose();
 	matJ2000ToAltAz = matEquinoxEquToAltAz*matJ2000ToEquinoxEqu;
+	matAltAzToJ2000 = matJ2000ToAltAz.transpose();
 
 	matHeliocentricEclipticToEquinoxEqu = matJ2000ToEquinoxEqu * matVsop87ToJ2000 * Mat4d::translation(-position->getCenterVsop87Pos());
 
@@ -1009,6 +1023,7 @@ void StelCore::returnToHome()
 	landscapeMgr->setCurrentLandscapeID(landscapeMgr->getDefaultLandscapeID());
 	landscapeMgr->setFlagAtmosphere(p->hasAtmosphere() && conf->value("landscape/flag_atmosphere", true).toBool());
 	landscapeMgr->setFlagFog(p->hasAtmosphere() && conf->value("landscape/flag_fog", true).toBool());
+	landscapeMgr->setFlagLandscape(!p->getEnglishName().contains("observer", Qt::CaseInsensitive) && conf->value("landscape/flag_landscape", true).toBool());
 
 	GETSTELMODULE(StelObjectMgr)->unSelect();
 
@@ -1111,6 +1126,12 @@ void StelCore::moveObserverToSelected()
 				loc.planetName = pl->getEnglishName();
 				loc.name = "-";
 				loc.state = "";
+
+				// Let's try guess name of location...
+				LocationMap results = StelApp::getInstance().getLocationMgr().pickLocationsNearby(loc.planetName, loc.longitude, loc.latitude, 1.0f);
+				if (results.size()>0)
+					loc = results.value(results.firstKey()); // ...and use it!
+
 				moveObserverTo(loc);
 
 				LandscapeMgr* landscapeMgr = GETSTELMODULE(LandscapeMgr);
@@ -1797,7 +1818,7 @@ double StelCore::computeDeltaT(const double JD)
 	}
 
 	if (!deltaTdontUseMoon)
-		DeltaT += StelUtils::getMoonSecularAcceleration(JD, deltaTnDot, (de430Active || de431Active));
+		DeltaT += StelUtils::getMoonSecularAcceleration(JD, deltaTnDot, ((de430Active&&EphemWrapper::jd_fits_de430(JD)) || (de431Active&&EphemWrapper::jd_fits_de431(JD))));
 
 	return DeltaT;
 }
@@ -2443,4 +2464,30 @@ QString StelCore::getIAUConstellation(const Vec3d positionJ2000) const
 	}
 	qDebug() << "getIAUconstellation error: Cannot determine, algorithm failed.";
 	return "(?)";
+}
+
+Vec3d StelCore::getMouseJ2000Pos() const
+{
+	const StelProjectorP prj = getProjection(StelCore::FrameJ2000, StelCore::RefractionAuto);
+	float ppx = getCurrentStelProjectorParams().devicePixelsPerPixel;
+
+	QPoint p = StelMainView::getInstance().getMousePos(); // get screen coordinates of mouse cursor
+	Vec3d mousePosition;
+	float wh = prj->getViewportWidth()/2.; // get half of width of the screen
+	float hh = prj->getViewportHeight()/2.; // get half of height of the screen
+	float mx = p.x()-wh; // point 0 in center of the screen, axis X directed to right
+	float my = p.y()-hh; // point 0 in center of the screen, axis Y directed to bottom
+	// calculate position of mouse cursor via position of center of the screen (and invert axis Y)
+	// If coordinates are invalid, don't draw them.
+	bool coordsValid = prj->unProject((prj->getViewportPosX()+wh+mx)*ppx, (prj->getViewportPosY()+hh+1-my)*ppx, mousePosition);
+	if (coordsValid)
+	{ // Nick Fedoseev patch
+		Vec3d win;
+		prj->project(mousePosition,win);
+		float dx = prj->getViewportPosX()+wh+mx - win.v[0];
+		float dy = prj->getViewportPosY()+hh+1-my - win.v[1];
+		prj->unProject((prj->getViewportPosX()+wh+mx+dx)*ppx, (prj->getViewportPosY()+hh+1-my+dy)*ppx, mousePosition);
+	}
+
+	return mousePosition;
 }

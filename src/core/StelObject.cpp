@@ -29,6 +29,7 @@
 #include "StelLocation.hpp"
 #include "SolarSystem.hpp"
 #include "StelModuleMgr.hpp"
+#include "LandscapeMgr.hpp"
 #include "planetsephems/sidereal_time.h"
 
 #include <QRegExp>
@@ -39,8 +40,19 @@ int StelObject::stelObjectPMetaTypeID = qRegisterMetaType<StelObjectP>();
 
 Vec3d StelObject::getEquinoxEquatorialPos(const StelCore* core) const
 {
-	return core->j2000ToEquinoxEqu(getJ2000EquatorialPos(core));
+	return core->j2000ToEquinoxEqu(getJ2000EquatorialPos(core), StelCore::RefractionOff);
 }
+
+Vec3d StelObject::getEquinoxEquatorialPosApparent(const StelCore* core) const
+{
+	return core->j2000ToEquinoxEqu(getJ2000EquatorialPos(core), StelCore::RefractionOn);
+}
+
+Vec3d StelObject::getEquinoxEquatorialPosAuto(const StelCore* core) const
+{
+	return core->j2000ToEquinoxEqu(getJ2000EquatorialPos(core), StelCore::RefractionAuto);
+}
+
 
 // Get observer local sidereal coordinate
 Vec3d StelObject::getSiderealPosGeometric(const StelCore* core) const
@@ -70,7 +82,7 @@ Vec3d StelObject::getAltAzPosApparent(const StelCore* core) const
 // Get observer-centered alt/az position
 Vec3d StelObject::getAltAzPosAuto(const StelCore* core) const
 {
-	return core->j2000ToAltAz(getJ2000EquatorialPos(core));
+	return core->j2000ToAltAz(getJ2000EquatorialPos(core), StelCore::RefractionAuto);
 }
 
 // Get observer-centered galactic position
@@ -83,6 +95,34 @@ Vec3d StelObject::getGalacticPos(const StelCore *core) const
 Vec3d StelObject::getSupergalacticPos(const StelCore *core) const
 {
 	return core->j2000ToSupergalactic(getJ2000EquatorialPos(core));
+}
+
+// Checking position an object above mathematical horizon for current location
+bool StelObject::isAboveHorizon(const StelCore *core) const
+{
+	bool r = true;
+	float az, alt;
+	StelUtils::rectToSphe(&az, &alt, getAltAzPosAuto(core));
+	if (alt < 0.f)
+		r = false;
+
+	return r;
+}
+
+// Checking position an object above real horizon for current location
+bool StelObject::isAboveRealHorizon(const StelCore *core) const
+{
+	bool r = true;
+	LandscapeMgr* lmgr = GETSTELMODULE(LandscapeMgr);
+	if (lmgr->getFlagLandscape())
+	{
+		if (lmgr->getLandscapeOpacity(getAltAzPosAuto(core))>0.85f) // landscape displayed
+			r = false;
+	}
+	else
+		r = isAboveHorizon(core); // check object is below mathematical horizon
+
+	return r;
 }
 
 float StelObject::getVMagnitude(const StelCore* core) const 
@@ -416,6 +456,9 @@ QVariantMap StelObject::getInfoMap(const StelCore *core) const
 	// english name or designation & localized name
 	map.insert("name", getEnglishName());
 	map.insert("localized-name", getNameI18n());
+
+	// 'above horizon' flag
+	map.insert("above-horizon", isAboveRealHorizon(core));
 
 	return map;
 }

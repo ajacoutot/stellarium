@@ -263,7 +263,7 @@ QString StelLocaleMgr::getPrintableTimeZoneLocal(double JD) const
 {
 	if (core->getCurrentLocation().planetName=="Earth")
 	{
-		QString timeZone = "UTC";
+		QString timeZone = "";
 		QString currTZ = core->getCurrentTimeZone();
 		QString timeZoneST = "";
 
@@ -282,12 +282,12 @@ QString StelLocaleMgr::getPrintableTimeZoneLocal(double JD) const
 		float shift = core->getUTCOffset(JD);		
 		QTime tz = QTime(0, 0, 0).addSecs(3600*qAbs(shift));
 		if(shift<0.0f)
-			timeZone.append("-" + tz.toString("hh:mm"));
+			timeZone = QString("UTC-%1").arg(tz.toString("hh:mm"));
 		else
-			timeZone.append("+" + tz.toString("hh:mm"));
+			timeZone = QString("UTC+%1").arg(tz.toString("hh:mm"));
 
 		if (!timeZoneST.isEmpty() && !core->getUseCustomTimeZone())
-			timeZone.append(" (" + timeZoneST + ")");
+			timeZone = QString("%1 (%2)").arg(timeZone, timeZoneST);
 
 		return timeZone;
 	}
@@ -363,6 +363,13 @@ QString StelLocaleMgr::countryCodeToString(const QString& countryCode)
 	QMap<QString, QString>::ConstIterator i = countryCodeToStringMap.find(countryCode);
 	return (i!=countryCodeToStringMap.constEnd()) ? i.value() : QString();
 }
+
+// Convert a string to 2 letter country code
+QString StelLocaleMgr::countryNameToCode(const QString& countryName)
+{
+	return countryCodeToStringMap.key(countryName, "??");
+}
+
 
 // Return a list of all the known country names
 QStringList StelLocaleMgr::getAllCountryNames()

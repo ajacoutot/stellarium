@@ -106,22 +106,6 @@ void OcularDialog::retranslate()
 	}
 }
 
-void OcularDialog::styleChanged()
-{
-	// Nothing for now
-}
-
-void OcularDialog::updateStyle()
-{
-	if(dialog) {
-		StelGui* gui = dynamic_cast<StelGui*>(StelApp::getInstance().getGui());
-		Q_ASSERT(gui);
-		const StelStyle pluginStyle = plugin->getModuleStyleSheet(gui->getStelStyle());
-		dialog->setStyleSheet(pluginStyle.qtStyleSheet);
-		ui->textBrowser->document()->setDefaultStyleSheet(QString(pluginStyle.htmlStyleSheet));
-	}
-}
-
 /* ********************************************************************* */
 #if 0
 #pragma mark -
@@ -392,13 +376,13 @@ void OcularDialog::createDialogContent()
 	ccdMapper->addMapping(ui->ccdResX, 5);
 	ccdMapper->addMapping(ui->ccdResY, 6);
 	ccdMapper->addMapping(ui->ccdRotAngle, 7);
-	ccdMapper->addMapping(ui->OAG_checkBox, 8);
-	ccdMapper->addMapping(ui->OAGPrismH, 9);
-	ccdMapper->addMapping(ui->OAGPrismW, 10);
-	ccdMapper->addMapping(ui->OAGDist, 11);
-	ccdMapper->addMapping(ui->OAGPrismPA, 12);
-	ccdMapper->addMapping(ui->ccdBinningX, 13);
-	ccdMapper->addMapping(ui->ccdBinningY, 14);
+	ccdMapper->addMapping(ui->ccdBinningX, 8);
+	ccdMapper->addMapping(ui->ccdBinningY, 9);
+	ccdMapper->addMapping(ui->OAG_checkBox, 10);
+	ccdMapper->addMapping(ui->OAGPrismH, 11);
+	ccdMapper->addMapping(ui->OAGPrismW, 12);
+	ccdMapper->addMapping(ui->OAGDist, 13);
+	ccdMapper->addMapping(ui->OAGPrismPA, 14);
 	ccdMapper->toFirst();
 	connect(ui->ccdListView->selectionModel() , SIGNAL(currentRowChanged(QModelIndex, QModelIndex)),
 		ccdMapper, SLOT(setCurrentModelIndex(QModelIndex)));
@@ -490,14 +474,12 @@ void OcularDialog::createDialogContent()
 	{
 		ui->hideGridsLinesCheckBox->setChecked(true);
 	}
-
-	//Initialize the style
-	updateStyle();
 }
 
 void OcularDialog::selectedCCDRotationAngleChanged()
 {
-	emit(plugin->selectedCCDChanged());
+	if (plugin->getEnableCCD())
+		emit(plugin->selectedCCDChanged());
 }
 
 void OcularDialog::setLabelsDescriptionText(bool state)
@@ -544,7 +526,7 @@ void OcularDialog::initAboutText()
 
 	//Keys
 	html += "<h2>" + q_("Hot Keys") + "</h2>";
-	html += "<p>" + q_("The plug-in's key bindings can be edited in the General Tab.") + "</p>";
+	html += "<p>" + q_("The plug-in's key bindings can be edited in the Keyboard shortcuts editor (F7).") + "</p>";
 
 	StelGui* gui = dynamic_cast<StelGui*>(StelApp::getInstance().getGui());
 	Q_ASSERT(gui);
@@ -573,6 +555,15 @@ void OcularDialog::initAboutText()
 	html += "<li>";
 	html += QString("<strong>%1:</strong> %2").arg(menuString).arg(q_("Opens the pop-up navigation menu."));
 	html += "</li>";
+
+	html += "<li>";
+	html += QString("<strong>%1:</strong> %2").arg("Alt+M").arg(q_("Rotate reticle pattern of the eyepiece clockwise."));
+	html += "</li>";
+
+	html += "<li>";
+	html += QString("<strong>%1:</strong> %2").arg("Shift+Alt+M").arg(q_("Rotate reticle pattern of the eyepiece сounterclockwise."));
+	html += "</li>";
+
 	html += "</ul>";
 	html += "</body></html>";
 

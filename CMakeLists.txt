@@ -44,7 +44,7 @@ CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/cmake/version.tex.cmake ${PROJECT_SOURCE_DI
 SET(MINIMAL_QT_VERSION "5.3.0")
 
 # Use customized cmake macros
-SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
 
 # Show platform info
 MESSAGE(STATUS "Platform: ${CMAKE_SYSTEM}")
@@ -193,9 +193,13 @@ IF(ENABLE_NLS)
      ADD_DEFINITIONS(-DENABLE_NLS)
 ENDIF()
 
-
 # Activate media support
 SET(ENABLE_MEDIA 1 CACHE BOOL "Define whether media support should be activated.")
+
+# Activate GPS support. Solution depends on operating system:
+# - Windows: Only directly-attached serial NMEA emitter.
+# - Other systems: libgps if possible and NMEA emitter as fallback.
+SET(ENABLE_GPS 1 CACHE BOOL "Define whether GPS queries should be supported.")
 
 # SPOUT allows relaying the Stellarium OpenGL framebuffer as DirectX texture in other programs.
 # It exists on Windows only. Syphon is a similar system for MacOS, this might be added by a Mac developer.
@@ -343,7 +347,7 @@ FIND_PACKAGE(Qt5Widgets REQUIRED)
 # required for qcustomplot external dependency
 # not used elsewhere
 FIND_PACKAGE(Qt5PrintSupport REQUIRED)
-IF(USE_PLUGIN_TELESCOPECONTROL)
+IF(USE_PLUGIN_TELESCOPECONTROL OR ENABLE_GPS)
      FIND_PACKAGE(Qt5SerialPort REQUIRED)
 ENDIF()
 IF(WIN32)
@@ -418,12 +422,35 @@ SET(CMAKE_INCLUDE_CURRENT_DIR ON)
 IF(ENABLE_SCRIPTING)
      FIND_PACKAGE(Qt5Script REQUIRED)
 ENDIF()
+
 IF(ENABLE_MEDIA)
      SET(USE_QTOPENGL 1)
      ADD_DEFINITIONS(-DENABLE_MEDIA)
      FIND_PACKAGE(Qt5Multimedia REQUIRED)
      FIND_PACKAGE(Qt5MultimediaWidgets REQUIRED)
 ENDIF()
+
+IF(ENABLE_GPS)
+     MESSAGE(STATUS "GPS: support by Qt's NMEA handling enabled.")
+     FIND_PACKAGE(Qt5Positioning REQUIRED)
+     ADD_DEFINITIONS(-DENABLE_GPS)
+     IF(WIN32)
+          SET(ENABLE_LIBGPS 0)
+     ELSE(WIN32)
+          FIND_PACKAGE(GPS QUIET)
+          IF(GPS_FOUND)
+               SET(ENABLE_LIBGPS 1)
+               ADD_DEFINITIONS(-DENABLE_LIBGPS)
+               MESSAGE(STATUS "GPS: Using GPS library at ${GPS_LIBRARY}")
+          ELSE(GPS_FOUND)
+               SET(ENABLE_LIBGPS 0)
+               MESSAGE(STATUS "GPS: Could not find GPS library - GPSD query disabled!")
+          ENDIF(GPS_FOUND)
+     ENDIF(WIN32)
+ELSE(ENABLE_GPS)
+     SET(ENABLE_LIBGPS 0)
+ENDIF(ENABLE_GPS)
+
 
 IF(USE_QTOPENGL)
      # QtOpenGL module is deprecated. After merging the QOpenGLWidget branch, we don't use this module directly anymore,
@@ -433,8 +460,7 @@ ENDIF()
 
 FIND_PACKAGE(Qt5Test)
 
-### Setup external packages
-
+### Zlib package
 FIND_PACKAGE(ZLIB QUIET) #quiet warnings about not found, we have our own version anyway
 
 # if a system zlib is found, let the user choose if to instead use our bundled version
@@ -587,11 +613,17 @@ IF(WIN32)
      ELSE()
           SET(ISS_QT_SCRIPT "; QtScript isn't used")
      ENDIF()
-     IF(USE_PLUGIN_TELESCOPECONTROL)
+     IF(USE_PLUGIN_TELESCOPECONTROL OR ENABLE_GPS)
           GET_TARGET_PROPERTY(QtSerialPort_location Qt5::SerialPort LOCATION)
           SET(ISS_QT_SERIALPORT "Source: \"${QtSerialPort_location}\"; DestDir: \"{app}\";")
      ELSE()
           SET(ISS_QT_SERIALPORT "; QtSerialPort isn't used")
+     ENDIF()
+     IF(ENABLE_GPS)
+          GET_TARGET_PROPERTY(QtPositioning_location Qt5::Positioning LOCATION)
+          SET(ISS_QT_POSITIONING "Source: \"${QtPositioning_location}\"; DestDir: \"{app}\";")
+     ELSE()
+          SET(ISS_QT_POSITIONING "; QtPositioning isn't used")
      ENDIF()
      IF(ENABLE_MEDIA)
           GET_TARGET_PROPERTY(QtMultimedia_location Qt5::Multimedia LOCATION)
