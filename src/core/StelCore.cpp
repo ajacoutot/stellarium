@@ -134,9 +134,9 @@ StelCore::StelCore()
 	flagUseDST=conf->value("localization/flag_dst", true).toBool();
 
 	// Initialize matJ2000ToJ1875 matrix
-	double jd1875, eps1875, chi1875, omega1875, psi1875;
-	StelUtils::getJDFromDate(&jd1875, 1875, 1, 0, 0, 0, 0);
-	getPrecessionAnglesVondrak(jd1875, &eps1875, &chi1875, &omega1875, &psi1875);
+	double eps1875, chi1875, omega1875, psi1875;
+	double jdB1875 = StelUtils::getJDFromBesselianEpoch(1875.0);
+	getPrecessionAnglesVondrak(jdB1875, &eps1875, &chi1875, &omega1875, &psi1875);
 	matJ2000ToJ1875= Mat4d::xrotation(84381.406*1./3600.*M_PI/180.) * Mat4d::zrotation(-psi1875) * Mat4d::xrotation(-omega1875) * Mat4d::zrotation(chi1875);
 	matJ2000ToJ1875=matJ2000ToJ1875.transpose();
 }
@@ -624,27 +624,27 @@ bool StelCore::getFlipVert(void) const
 }
 
 // Get current value for horizontal viewport offset [-50...50]
-double StelCore::getViewportHorizontalOffset(void)
+double StelCore::getViewportHorizontalOffset(void) const
 {
 	return (currentProjectorParams.viewportCenterOffset[0] * 100.0f);
 }
 // Set horizontal viewport offset. Argument will be clamped to be inside [-50...50]
 void StelCore::setViewportHorizontalOffset(double newOffsetPct)
 {
-	currentProjectorParams.viewportCenterOffset[0]=0.01f* qMin(50., qMax(-50., newOffsetPct));
+	currentProjectorParams.viewportCenterOffset[0]=0.01f* qBound(-50., newOffsetPct, 50.);
 	currentProjectorParams.viewportCenter.set(currentProjectorParams.viewportXywh[0]+(0.5f+currentProjectorParams.viewportCenterOffset.v[0])*currentProjectorParams.viewportXywh[2],
 						currentProjectorParams.viewportXywh[1]+(0.5f+currentProjectorParams.viewportCenterOffset.v[1])*currentProjectorParams.viewportXywh[3]);
 }
 
 // Get current value for vertical viewport offset [-50...50]
-double StelCore::getViewportVerticalOffset(void)
+double StelCore::getViewportVerticalOffset(void) const
 {
 	return (currentProjectorParams.viewportCenterOffset[1] * 100.0f);
 }
 // Set vertical viewport offset. Argument will be clamped to be inside [-50...50]
 void StelCore::setViewportVerticalOffset(double newOffsetPct)
 {
-	currentProjectorParams.viewportCenterOffset[1]=0.01f* qMin(50., qMax(-50., newOffsetPct));
+	currentProjectorParams.viewportCenterOffset[1]=0.01f* qBound(-50., newOffsetPct, 50.);
 	currentProjectorParams.viewportCenter.set(currentProjectorParams.viewportXywh[0]+(0.5f+currentProjectorParams.viewportCenterOffset.v[0])*currentProjectorParams.viewportXywh[2],
 						currentProjectorParams.viewportXywh[1]+(0.5f+currentProjectorParams.viewportCenterOffset.v[1])*currentProjectorParams.viewportXywh[3]);
 }
@@ -652,8 +652,8 @@ void StelCore::setViewportVerticalOffset(double newOffsetPct)
 // Set both viewport offsets. Arguments will be clamped to be inside [-50...50]. I (GZ) hope this will avoid some of the shaking.
 void StelCore::setViewportOffset(double newHorizontalOffsetPct, double newVerticalOffsetPct)
 {
-	currentProjectorParams.viewportCenterOffset[0]=0.01f* qMin(50., qMax(-50., newHorizontalOffsetPct));
-	currentProjectorParams.viewportCenterOffset[1]=0.01f* qMin(50., qMax(-50., newVerticalOffsetPct));
+	currentProjectorParams.viewportCenterOffset[0]=0.01f* qBound(-50., newHorizontalOffsetPct, 50.);
+	currentProjectorParams.viewportCenterOffset[1]=0.01f* qBound(-50., newVerticalOffsetPct,   50.);
 	currentProjectorParams.viewportCenter.set(currentProjectorParams.viewportXywh[0]+(0.5f+currentProjectorParams.viewportCenterOffset.v[0])*currentProjectorParams.viewportXywh[2],
 						currentProjectorParams.viewportXywh[1]+(0.5f+currentProjectorParams.viewportCenterOffset.v[1])*currentProjectorParams.viewportXywh[3]);
 }
@@ -1180,7 +1180,6 @@ void StelCore::setObserver(StelObserver *obs)
 // Smoothly move the observer to the given location
 void StelCore::moveObserverTo(const StelLocation& target, double duration, double durationIfPlanetChange)
 {
-	emit(locationChanged(target));
 	double d = (getCurrentLocation().planetName==target.planetName) ? duration : durationIfPlanetChange;
 	if (d>0.)
 	{
@@ -1191,15 +1190,15 @@ void StelCore::moveObserverTo(const StelLocation& target, double duration, doubl
 			curLoc.name = ".";
 		}
 		SpaceShipObserver* newObs = new SpaceShipObserver(curLoc, target, d);
-		delete position;
-		position = newObs;
+		setObserver(newObs);
 		newObs->update(0);
 	}
 	else
 	{
-		delete position;
-		position = new StelObserver(target);
+		setObserver(new StelObserver(target));
 	}
+	emit targetLocationChanged(target);
+	emit locationChanged(getCurrentLocation());
 }
 
 float StelCore::getUTCOffset(const double JD) const
@@ -1764,11 +1763,13 @@ void StelCore::resetSync()
 
 void StelCore::registerMathMetaTypes()
 {
+	//enables use of these types in QVariant, StelProperty, signals and slots
 	qRegisterMetaType<Vec2d>();
 	qRegisterMetaType<Vec2f>();
 	qRegisterMetaType<Vec2i>();
 	qRegisterMetaType<Vec3d>();
 	qRegisterMetaType<Vec3f>();
+	qRegisterMetaType<Vec3i>();
 	qRegisterMetaType<Vec4d>();
 	qRegisterMetaType<Vec4f>();
 	qRegisterMetaType<Vec4i>();
@@ -1777,9 +1778,28 @@ void StelCore::registerMathMetaTypes()
 	qRegisterMetaType<Mat3d>();
 	qRegisterMetaType<Mat3f>();
 
+	//registers the QDataStream operators, so that QVariants with these types can be saved
+	qRegisterMetaTypeStreamOperators<Vec2d>();
+	qRegisterMetaTypeStreamOperators<Vec2f>();
+	qRegisterMetaTypeStreamOperators<Vec2i>();
+	qRegisterMetaTypeStreamOperators<Vec3d>();
+	qRegisterMetaTypeStreamOperators<Vec3f>();
+	qRegisterMetaTypeStreamOperators<Vec3i>();
+	qRegisterMetaTypeStreamOperators<Vec4d>();
+	qRegisterMetaTypeStreamOperators<Vec4f>();
+	qRegisterMetaTypeStreamOperators<Vec4i>();
+	qRegisterMetaTypeStreamOperators<Mat4d>();
+	qRegisterMetaTypeStreamOperators<Mat4f>();
+	qRegisterMetaTypeStreamOperators<Mat3d>();
+	qRegisterMetaTypeStreamOperators<Mat3f>();
+
 	//for debugging QVariants with these types, it helps if we register the string converters
+	QMetaType::registerConverter(&Vec2d::toString);
+	QMetaType::registerConverter(&Vec2f::toString);
+	QMetaType::registerConverter(&Vec2i::toString);
 	QMetaType::registerConverter(&Vec3d::toString);
 	QMetaType::registerConverter(&Vec3f::toString);
+	QMetaType::registerConverter(&Vec3i::toString);
 	QMetaType::registerConverter(&Vec4d::toString);
 	QMetaType::registerConverter(&Vec4f::toString);
 	QMetaType::registerConverter(&Vec4i::toString);
@@ -2383,9 +2403,9 @@ void StelCore::initEphemeridesFunctions()
 
 // Methods for finding constellation from J2000 position.
 typedef struct iau_constline{
-	float RAlow;  // low value of 1875.0 right ascension segment, HH.dddd
-	float RAhigh; // high value of 1875.0 right ascension segment, HH.dddd
-	float decLow; // declination 1875.0 of southern border, DD.dddd
+	double RAlow;  // low value of 1875.0 right ascension segment, HH.dddd
+	double RAhigh; // high value of 1875.0 right ascension segment, HH.dddd
+	double decLow; // declination 1875.0 of southern border, DD.dddd
 	QString constellation; // 3-letter code of constellation
 } iau_constelspan;
 
@@ -2393,20 +2413,20 @@ static QVector<iau_constelspan> iau_constlineVec;
 static bool iau_constlineVecInitialized=false;
 
 // File iau_constellations_spans.dat is file data.dat from ADC catalog VI/42
-QString StelCore::getIAUConstellation(const Vec3d positionJ2000) const
+QString StelCore::getIAUConstellation(const Vec3d positionEqJnow) const
 {
 	// Precess positionJ2000 to 1875.0
-	Vec3d pos1875=j2000ToJ1875(positionJ2000);
-	float RA1875;
-	float dec1875;
+	Vec3d pos1875=j2000ToJ1875(equinoxEquToJ2000(positionEqJnow));
+	double RA1875;
+	double dec1875;
 	StelUtils::rectToSphe(&RA1875, &dec1875, pos1875);
 	RA1875 *= 12./M_PI; // hours
-	if (RA1875 <0.f) RA1875+=24.f;
+	if (RA1875 <0.) RA1875+=24.;
 	dec1875 *= 180./M_PI; // degrees
-	Q_ASSERT(RA1875>=0.0f);
-	Q_ASSERT(RA1875<=24.0f);
-	Q_ASSERT(dec1875<=90.0f);
-	Q_ASSERT(dec1875>=-90.0f);
+	Q_ASSERT(RA1875>=0.0);
+	Q_ASSERT(RA1875<=24.0);
+	Q_ASSERT(dec1875<=90.0);
+	Q_ASSERT(dec1875>=-90.0);
 
 	// read file into structure.
 	if (!iau_constlineVecInitialized)
