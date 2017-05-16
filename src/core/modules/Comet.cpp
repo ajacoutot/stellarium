@@ -51,12 +51,15 @@ QVector<float> Comet::tailTexCoordArr; // computed only once for all Comets.
 QVector<unsigned short> Comet::tailIndices; // computed only once for all Comets.
 
 Comet::Comet(const QString& englishName,
-	     int flagLighting,
 	     double radius,
 	     double oblateness,
 	     Vec3f halocolor,
 	     float albedo,
+	     float roughness,
+	     float outgas_intensity,
+	     float outgas_falloff,
 	     const QString& atexMapName,
+	     const QString& aobjModelName,
 	     posFuncType coordFunc,
 	     void* auserDataPtr,
 	     OsculatingFunctType *osculatingFunc,
@@ -67,13 +70,14 @@ Comet::Comet(const QString& englishName,
 	     float dustTailLengthFact,
 	     float dustTailBrightnessFact)
 	: Planet (englishName,
-		  flagLighting,
 		  radius,
 		  oblateness,
 		  halocolor,
 		  albedo,
+		  roughness,
 		  atexMapName,
-		  "",
+		  "", // no normalmap.
+		  aobjModelName,
 		  coordFunc,
 		  auserDataPtr,
 		  osculatingFunc,
@@ -94,10 +98,13 @@ Comet::Comet(const QString& englishName,
 	  lastJDEtail(0.0),
 	  dustTailWidthFactor(dustTailWidthFact),
 	  dustTailLengthFactor(dustTailLengthFact),
-	  dustTailBrightnessFactor(dustTailBrightnessFact)
+	  dustTailBrightnessFactor(dustTailBrightnessFact),
+	  intensityFovScale(1.0f),
+	  intensityMinFov(0.001f), // when zooming in further, Coma is no longer visible.
+	  intensityMaxFov(0.010f) // when zooming out further, MilkyComa is fully visible (when enabled).
 {
-	texMap = StelApp::getInstance().getTextureManager().createTextureThread(StelFileMgr::getInstallationDir()+"/textures/"+texMapName, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
-
+	this->outgas_intensity =outgas_intensity;
+	this->outgas_falloff   =outgas_falloff;
 	gastailVertexArr.clear();
 	dusttailVertexArr.clear();
 	comaVertexArr.clear();
@@ -316,6 +323,10 @@ void Comet::update(int deltaTime)
 {
 	Planet::update(deltaTime);
 
+	//calculate FOV fade value, linear fade between intensityMaxFov and intensityMinFov
+	const double vfov = StelApp::getInstance().getCore()->getMovementMgr()->getCurrentFov();
+	intensityFovScale = qBound(0.25,(vfov - intensityMinFov) / (intensityMaxFov - intensityMinFov),1.0);
+
 	// The rest deals with updating tail geometries and brightness
 	StelCore* core=StelApp::getInstance().getCore();
 	double dateJDE=core->getJDE();
@@ -495,7 +506,7 @@ void Comet::draw(StelCore* core, float maxMagLabels, const QFont& planetNameFont
 	float screenSz = getAngularSize(core)*M_PI/180.*prj->getPixelPerRadAtCenter();
 	float viewport_left = prj->getViewportPosX();
 	float viewport_bottom = prj->getViewportPosY();
-	if (prj->project(Vec3d(0), screenPos)
+	if (prj->project(Vec3d(0.), screenPos)
 		&& screenPos[1]>viewport_bottom - screenSz && screenPos[1] < viewport_bottom + prj->getViewportHeight()+screenSz
 		&& screenPos[0]>viewport_left - screenSz && screenPos[0] < viewport_left + prj->getViewportWidth() + screenSz)
 	{
@@ -573,7 +584,7 @@ void Comet::drawComa(StelCore* core, StelProjector::ModelViewTranformP transfo)
 	float lum = core->getSkyDrawer()->surfaceBrightnessToLuminance(getVMagnitudeWithExtinction(core)+11.0f); // How to calibrate?
 	// Get the luminance scaled between 0 and 1
 	float aLum =eye->adaptLuminanceScaled(lum);
-	float magFactor=qMin(qMax(aLum, 0.25f), 2.0f);
+	float magFactor=qBound(0.25f*intensityFovScale, aLum*intensityFovScale, 2.0f);
 	comaTexture->bind();
 	sPainter.setColor(0.3f*magFactor,0.7*magFactor,magFactor);
 	sPainter.setArrays((Vec3d*)comaVertexArr.constData(), (Vec2f*)comaTexCoordArr.constData());

@@ -35,12 +35,15 @@
 #include <QDebug>
 
 MinorPlanet::MinorPlanet(const QString& englishName,
-			 int flagLighting,
 			 double radius,
 			 double oblateness,
 			 Vec3f halocolor,
 			 float albedo,
+			 float roughness,
+			 //float outgas_intensity,
+			 //float outgas_falloff,
 			 const QString& atexMapName,
+			 const QString& aobjModelName,
 			 posFuncType coordFunc,
 			 void* auserDataPtr,
 			 OsculatingFunctType *osculatingFunc,
@@ -48,13 +51,16 @@ MinorPlanet::MinorPlanet(const QString& englishName,
 			 bool hidden,
 			 const QString &pTypeStr)
 	: Planet (englishName,
-		  flagLighting,
 		  radius,
 		  oblateness,
 		  halocolor,
 		  albedo,
+		  roughness,
+		  //0.f, // outgas_intensity,
+		  //0.f, // outgas_falloff,
 		  atexMapName,
 		  "",
+		  aobjModelName,
 		  coordFunc,
 		  auserDataPtr,
 		  osculatingFunc,
@@ -70,8 +76,6 @@ MinorPlanet::MinorPlanet(const QString& englishName,
 	nameIsProvisionalDesignation(false),
 	properName(englishName)
 {
-	texMap = StelApp::getInstance().getTextureManager().createTextureThread(StelFileMgr::getInstallationDir()+"/textures/"+texMapName, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
-
 	//TODO: Fix the name
 	// - Detect numeric prefix and set number if any
 	// - detect provisional designation
@@ -125,13 +129,6 @@ MinorPlanet::~MinorPlanet()
 	//Do nothing for the moment
 }
 
-//void MinorPlanet::setSemiMajorAxis(double value)
-//{
-//	semiMajorAxis = value;
-//	// GZ: in case we have very many asteroids, this helps improving speed usually without sacrificing accuracy:
-//	deltaJDE = 2.0*semiMajorAxis*StelCore::JD_SECOND;
-//}
-
 void MinorPlanet::setMinorPlanetNumber(int number)
 {
 	if (minorPlanetNumber)
@@ -140,7 +137,7 @@ void MinorPlanet::setMinorPlanetNumber(int number)
 	minorPlanetNumber = number;
 }
 
-void MinorPlanet::setAbsoluteMagnitudeAndSlope(double magnitude, double slope)
+void MinorPlanet::setAbsoluteMagnitudeAndSlope(const float magnitude, const float slope)
 {
 	if (slope < -1.f || slope > 2.0)
 	{

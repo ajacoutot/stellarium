@@ -39,12 +39,13 @@ class MinorPlanet : public Planet
 {
 public:
 	MinorPlanet(const QString& englishName,
-		    int flagLighting,
 		    double radius,
 		    double oblateness,
 		    Vec3f halocolor,
 		    float albedo,
+		    float roughness,
 		    const QString& texMapName,
+		    const QString& objModelName,
 		    posFuncType _coordFunc,
 		    void* userDataPtr,
 		    OsculatingFunctType *osculatingFunc,
@@ -100,7 +101,7 @@ public:
 	//! different phase angles.
 	//! @param magnitude Absolute magnitude H
 	//! @param slope Slope parameter G. This is usually [0..1], sometimes slightly outside. Allowed here [-1..2].
-	void setAbsoluteMagnitudeAndSlope(double magnitude, double slope);
+	void setAbsoluteMagnitudeAndSlope(const float magnitude, const float slope);
 
 	//! renders the subscript in a minor planet provisional designation with HTML.
 	//! \returns an emtpy string if the source string is not a provisional
