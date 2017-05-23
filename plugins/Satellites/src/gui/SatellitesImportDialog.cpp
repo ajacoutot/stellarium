@@ -40,9 +40,9 @@ SatellitesImportDialog::SatellitesImportDialog()
 	: StelDialog("SatellitesImport")
 	, isGettingData(false)
 	, numberDownloadsComplete(0)
-	, downloadMgr(0)
-	, progressBar(0)
-	, filterProxyModel(NULL)
+	, downloadMgr(Q_NULLPTR)
+	, progressBar(Q_NULLPTR)
+	, filterProxyModel(Q_NULLPTR)
 {
 	ui = new Ui_satellitesImportDialog;
 	newSatellitesModel = new QStandardItemModel(this);
@@ -56,14 +56,14 @@ SatellitesImportDialog::~SatellitesImportDialog()
 	if (progressBar)
 	{
 		StelApp::getInstance().removeProgressBar(progressBar);
-		progressBar = 0;
+		progressBar = Q_NULLPTR;
 	}
 	
 	if (newSatellitesModel)
 	{
 		newSatellitesModel->clear();
 		delete newSatellitesModel;
-		newSatellitesModel = 0;
+		newSatellitesModel = Q_NULLPTR;
 	}
 }
 

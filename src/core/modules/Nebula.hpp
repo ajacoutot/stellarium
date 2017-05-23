@@ -146,7 +146,7 @@ public:
 	virtual QString getType() const {return NEBULA_TYPE;}
 	virtual QString getID() const {return getDSODesignation(); } //this depends on the currently shown catalog flags, should this be changed?
 	virtual Vec3d getJ2000EquatorialPos(const StelCore*) const {return XYZ;}
-	virtual double getCloseViewFov(const StelCore* core = NULL) const;
+	virtual double getCloseViewFov(const StelCore* core = Q_NULLPTR) const;
 	virtual float getVMagnitude(const StelCore* core) const;
 	virtual float getSelectPriority(const StelCore* core) const;
 	virtual Vec3f getInfoColor() const;
@@ -171,8 +171,10 @@ public:
 	//! @return the nebula morphological type string.
 	QString getMorphologicalTypeString() const;
 
-	float getSurfaceBrightness(const StelCore* core) const;
-	float getSurfaceBrightnessWithExtinction(const StelCore* core) const;
+	float getSurfaceBrightness(const StelCore* core, bool arcsec=false) const;
+	float getSurfaceBrightnessWithExtinction(const StelCore* core, bool arcsec=false) const;
+	//! Compute an extended object's contrast index
+	float getContrastIndex(const StelCore* core) const;
 
 	//! Get the surface area.
 	//! @return surface area in square degrees.
@@ -296,6 +298,8 @@ private:
 	static bool flagUseTypeFilters;
 	static CatalogGroup catalogFilters;
 	static TypeGroup typeFilters;
+
+	static bool flagUseArcsecSurfaceBrightness;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Nebula::CatalogGroup)

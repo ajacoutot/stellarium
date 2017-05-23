@@ -76,6 +76,9 @@ public:
 		EphemerisRA,		//! right ascension
 		EphemerisDec,		//! declination
 		EphemerisMagnitude,	//! magnitude
+		EphemerisPhase,		//! phase
+		EphemerisDistance,	//! distance
+		EphemerisElongation,	//! elongation
 		EphemerisCount		//! total number of columns
 	};
 
@@ -90,14 +93,26 @@ public:
 		PhenomenaCount		//! total number of columns
 	};
 
+	//! Defines the type of graphs
+	//! @enum GraphsTypes
+	enum GraphsTypes {
+		GraphMagnitudeVsTime	= 1,
+		GraphPhaseVsTime	= 2,
+		GraphDistanceVsTime	= 3,
+		GraphElongationVsTime	= 4,
+		GraphAngularSizeVsTime	= 5,
+		GraphPhaseAngleVsTime	= 6
+	};
+
 	AstroCalcDialog(QObject* parent);
 	virtual ~AstroCalcDialog();
 
 	//! Notify that the application style changed
 	void styleChanged();
 
-	static QVector<Vec3d> EphemerisListJ2000;
+	static QVector<Vec3d> EphemerisListCoords;
 	static QVector<QString> EphemerisListDates;
+	static QVector<float> EphemerisListMagnitudes;
 	static int DisplayedPositionIndex;
 
 public slots:
@@ -128,7 +143,8 @@ private slots:
 	void cleanupEphemeris();
 	void selectCurrentEphemeride(const QModelIndex &modelIndex);
 	void saveEphemeris();
-	void onChangedEphemerisPosition(const QModelIndex &modelIndex);
+	void onChangedEphemerisPosition(const QModelIndex &modelIndex);	
+	void reGenerateEphemeris();
 
 	void saveEphemerisCelestialBody(int index);
 	void saveEphemerisTimeStep(int index);
@@ -148,9 +164,14 @@ private slots:
 	//! Draw vertical line 'Now' on diagram 'Altitude vs. Time'
 	void drawCurrentTimeDiagram();
 	//! Draw vertical line of meridian passage time on diagram 'Altitude vs. Time'
-	void drawTransitTimeDiagram(double transitTime); // time in hours
+	void drawTransitTimeDiagram();
 	//! Show info from graphs under mouse cursor
 	void mouseOverLine(QMouseEvent *event);
+
+	void saveGraphsCelestialBody(int index);
+	void saveGraphsFirstId(int index);
+	void saveGraphsSecondId(int index);
+	void drawXVsTimeGraphs();
 
 	// WUT
 	void saveWutMagnitudeLimit(double mag);
@@ -205,10 +226,13 @@ private:
 	void populateGroupCelestialBodyList();	
 	//! Prepare graph settings
 	void prepareAxesAndGraph();
+	void prepareXVsTimeAxesAndGraph();
 	//! Populates the drop-down list of time intervals for WUT tool.
 	void populateTimeIntervalsList();
 	//! Populates the list of groups for WUT tool.
 	void populateWutGroups();
+
+	void populateFunctionsList();
 
 	//! Calculation conjunctions and oppositions.
 	//! @note Ported from KStars, should be improved, because this feature calculate
@@ -232,7 +256,8 @@ private:
 	QString delimiter, acEndl;
 	QStringList ephemerisHeader, phenomenaHeader, positionsHeader;
 	static float brightLimit;
-	static float minY, maxY;
+	static float minY, maxY, transitX, minY1, maxY1, minY2, maxY2;
+	static QString yAxis1Legend, yAxis2Legend;
 
 	//! Make sure that no tabs icons are outside of the viewport.
 	//! @todo Limit the width to the width of the screen *available to the window*.

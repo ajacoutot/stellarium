@@ -90,7 +90,7 @@ float Heightmap::getHeight(const float x, const float y) const
 	timer.start();*/
 
 	Heightmap::GridSpace* space = getSpace(x, y);
-	if (space == NULL)
+	if (space == Q_NULLPTR)
 	{
 		return nullHeight;
 	}
@@ -217,7 +217,7 @@ Heightmap::GridSpace* Heightmap::getSpace(const float x, const float y) const
 
 	if ((ix < 0) || (ix >= GRID_LENGTH) || (iy < 0) || (iy >= GRID_LENGTH))
 	{
-		return NULL;
+		return Q_NULLPTR;
 	}
 	else
 	{
@@ -319,13 +319,13 @@ bool Heightmap::line_intersects_triangle(const Vec2f &t0, const Vec2f &t1, const
 }
 
 Heightmap::QuadTreeNode::QuadTreeNode(const Vec2f &min, const Vec2f &max)
-	: children(Q_NULLPTR)
+	: parent(Q_NULLPTR), children(Q_NULLPTR), level(-1), depth(-1), nodecount(-1)
 {
 	init(Q_NULLPTR,min,max);
 }
 
 Heightmap::QuadTreeNode::QuadTreeNode()
-	: children(Q_NULLPTR)
+	: parent(Q_NULLPTR), children(Q_NULLPTR), level(-1), depth(-1), nodecount(-1)
 {
 
 }
