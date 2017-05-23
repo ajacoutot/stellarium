@@ -256,6 +256,19 @@
         </item>
         <item>
          <property name="text">
+          <string>Graphs</string>
+         </property>
+         <property name="toolTip">
+          <string>Graphs on the current year</string>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normalon>:/graphicGui/tabicon-AstroCalc-Graphs.png</normalon>
+          </iconset>
+         </property>
+        </item>
+        <item>
+         <property name="text">
           <string comment="What's Up Tonight">WUT</string>
          </property>
          <property name="toolTip">
@@ -446,6 +459,9 @@
           </item>
           <item row="2" column="0">
            <widget class="QTreeWidget" name="celestialPositionsTreeWidget">
+            <property name="toolTip">
+             <string>List of objects above horizon</string>
+            </property>
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
             </property>
@@ -483,6 +499,33 @@
         </widget>
         <widget class="QWidget" name="stackedWidgetPage3">
          <layout class="QGridLayout" name="gridLayout_3">
+          <item row="0" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout">
+            <item>
+             <widget class="QLabel" name="celestialBodyName">
+              <property name="text">
+               <string>Celestial body:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="celestialBodyComboBox">
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <property name="currentText">
+               <string/>
+              </property>
+              <property name="currentIndex">
+               <number>-1</number>
+              </property>
+              <property name="insertPolicy">
+               <enum>QComboBox::NoInsert</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
           <item row="1" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_4">
             <item>
@@ -525,33 +568,6 @@
             </item>
            </layout>
           </item>
-          <item row="0" column="0">
-           <layout class="QHBoxLayout" name="horizontalLayout">
-            <item>
-             <widget class="QLabel" name="celestialBodyName">
-              <property name="text">
-               <string>Celestial body:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QComboBox" name="celestialBodyComboBox">
-              <property name="editable">
-               <bool>true</bool>
-              </property>
-              <property name="currentText">
-               <string/>
-              </property>
-              <property name="currentIndex">
-               <number>-1</number>
-              </property>
-              <property name="insertPolicy">
-               <enum>QComboBox::NoInsert</enum>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
           <item row="0" column="1">
            <layout class="QHBoxLayout" name="horizontalLayout_2">
             <item>
@@ -573,17 +589,7 @@
             </item>
            </layout>
           </item>
-          <item row="2" column="1">
-           <widget class="QCheckBox" name="ephemerisShowDatesCheckBox">
-            <property name="toolTip">
-             <string>Show dates of positions of current celestial body near markers</string>
-            </property>
-            <property name="text">
-             <string>Show dates of positions</string>
-            </property>
-           </widget>
-          </item>
-          <item row="5" column="0" colspan="2">
+          <item row="6" column="0" colspan="2">
            <widget class="QTreeWidget" name="ephemerisTreeWidget">
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
@@ -608,17 +614,7 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QCheckBox" name="ephemerisShowMarkersCheckBox">
-            <property name="toolTip">
-             <string>Show markers of positions of the current celestial body on the sky</string>
-            </property>
-            <property name="text">
-             <string>Show markers of positions</string>
-            </property>
-           </widget>
-          </item>
-          <item row="6" column="0" colspan="2">
+          <item row="7" column="0" colspan="2">
            <layout class="QHBoxLayout" name="horizontalLayout_11">
             <item>
              <widget class="QPushButton" name="ephemerisCleanupButton">
@@ -641,6 +637,50 @@
               </property>
               <property name="text">
                <string>Calculate ephemeris</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <layout class="QHBoxLayout" name="horizontalLayout_17">
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="ephemerisShowMarkersCheckBox">
+              <property name="toolTip">
+               <string>Show markers of positions of the current celestial body on the sky</string>
+              </property>
+              <property name="text">
+               <string>Show markers</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="ephemerisShowDatesCheckBox">
+              <property name="toolTip">
+               <string>Show dates of positions of current celestial body near markers</string>
+              </property>
+              <property name="text">
+               <string>Show dates</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="ephemerisShowMagnitudesCheckBox">
+              <property name="toolTip">
+               <string>Show magnitudes of current celestial body</string>
+              </property>
+              <property name="text">
+               <string>Show magnitudes</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="ephemerisHorizontalCoordinatesCheckBox">
+              <property name="text">
+               <string>Use horizontal coordinates</string>
               </property>
              </widget>
             </item>
@@ -880,6 +920,92 @@
          </layout>
         </widget>
         <widget class="QWidget" name="stackedWidgetPage6">
+         <layout class="QGridLayout" name="gridLayout_6">
+          <item row="4" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_20">
+            <item>
+             <widget class="QLabel" name="graphsSecondLabel">
+              <property name="text">
+               <string>Second graph (yellow):</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="graphsSecondComboBox"/>
+            </item>
+           </layout>
+          </item>
+          <item row="4" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_19">
+            <item>
+             <widget class="QLabel" name="graphsFirstLabel">
+              <property name="text">
+               <string>First graph (red):</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="graphsFirstComboBox"/>
+            </item>
+           </layout>
+          </item>
+          <item row="5" column="0">
+           <layout class="QHBoxLayout" name="horizontalLayout_18">
+            <item>
+             <widget class="QLabel" name="graphsCelestialBodyLabel">
+              <property name="text">
+               <string>Celestial body:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="graphsCelestialBodyComboBox">
+              <property name="editable">
+               <bool>true</bool>
+              </property>
+              <property name="insertPolicy">
+               <enum>QComboBox::NoInsert</enum>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="5" column="1">
+           <widget class="QPushButton" name="drawGraphsPushButton">
+            <property name="text">
+             <string>Draw graphs</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0" colspan="2">
+           <widget class="QLabel" name="graphsLabel">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Graphs on the current year</string>
+            </property>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="2">
+           <widget class="QCustomPlot" name="graphsPlot" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+        <widget class="QWidget" name="stackedWidgetPage7">
          <layout class="QGridLayout" name="gridLayout">
           <item row="0" column="0">
            <layout class="QHBoxLayout" name="horizontalLayout_13">

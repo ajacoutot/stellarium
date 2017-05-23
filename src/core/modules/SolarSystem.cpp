@@ -80,7 +80,9 @@ SolarSystem::SolarSystem()
 	, flagIsolatedOrbits(true)
 	, ephemerisMarkersDisplayed(true)
 	, ephemerisDatesDisplayed(false)
-	, allTrails(NULL)
+	, ephemerisMagnitudesDisplayed(false)
+	, ephemerisHorizontalCoordinates(false)
+	, allTrails(Q_NULLPTR)
 	, conf(StelApp::getInstance().getSettings())
 {
 	planetNameFont.setPixelSize(StelApp::getInstance().getBaseFontSize());
@@ -100,7 +102,7 @@ SolarSystem::~SolarSystem()
 	foreach (Orbit* orb, orbits)
 	{
 		delete orb;
-		orb = NULL;
+		orb = Q_NULLPTR;
 	}
 	sun.clear();
 	moon.clear();
@@ -112,7 +114,7 @@ SolarSystem::~SolarSystem()
 	texPointer.clear();
 
 	delete allTrails;
-	allTrails = NULL;
+	allTrails = Q_NULLPTR;
 
 	// Get rid of circular reference between the shared pointers which prevent proper destruction of the Planet objects.
 	foreach (PlanetP p, systemPlanets)
@@ -166,7 +168,7 @@ void SolarSystem::init()
 	setFlagPointer(conf->value("astro/flag_planets_pointers", true).toBool());
 	// Set the algorithm from Astronomical Almanac for computation of apparent magnitudes for
 	// planets in case  observer on the Earth by default
-	setApparentMagnitudeAlgorithmOnEarth(conf->value("astro/apparent_magnitude_algorithm", "Harris").toString());
+	setApparentMagnitudeAlgorithmOnEarth(conf->value("astro/apparent_magnitude_algorithm", "ExplSup2013").toString());
 	setFlagNativePlanetNames(conf->value("viewing/flag_planets_native_names", true).toBool());
 	// Is enabled the showing of isolated trails for selected objects only?
 	setFlagIsolatedTrails(conf->value("viewing/flag_isolated_trails", true).toBool());
@@ -174,8 +176,10 @@ void SolarSystem::init()
 	setFlagPermanentOrbits(conf->value("astro/flag_permanent_orbits", false).toBool());
 	setOrbitColorStyle(conf->value("astro/planets_orbits_color_style", "one_color").toString());
 
-	setFlagEphemerisMarkers(conf->value("astro/flag_ephemeris_markers", true).toBool());
-	setFlagEphemerisDates(conf->value("astro/flag_ephemeris_dates", false).toBool());
+	setFlagEphemerisMarkers(conf->value("astrocalc/flag_ephemeris_markers", true).toBool());
+	setFlagEphemerisDates(conf->value("astrocalc/flag_ephemeris_dates", false).toBool());
+	setFlagEphemerisMagnitudes(conf->value("astrocalc/flag_ephemeris_magnitudes", false).toBool());
+	setFlagEphemerisHorizontalCoordinates(conf->value("astrocalc/flag_ephemeris_horizontal", false).toBool());
 
 	// Settings for calculation of position of Great Red Spot on Jupiter
 	setFlagCustomGrsSettings(conf->value("astro/flag_grs_custom", false).toBool());
@@ -246,12 +250,12 @@ void SolarSystem::deinit()
 void SolarSystem::recreateTrails()
 {
 	// Create a trail group containing all the planets orbiting the sun (not including satellites)
-	if (allTrails!=NULL)
+	if (allTrails!=Q_NULLPTR)
 		delete allTrails;
 	allTrails = new TrailGroup(365.f);
 
 	PlanetP p = getSelected();
-	if (p!=NULL && getFlagIsolatedTrails())
+	if (p!=Q_NULLPTR && getFlagIsolatedTrails())
 	{
 		allTrails->addObject((QSharedPointer<StelObject>)p, &trailColor);
 	}
@@ -562,9 +566,9 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 
 		const QString coordFuncName = pd.value(secname+"/coord_func").toString();
 		//const QString axisFuncName = pd.value(secname+"/axis_func").toString();
-		posFuncType posfunc=NULL;
-		void* userDataPtr=NULL;
-		OsculatingFunctType *osculatingFunc = 0;
+		posFuncType posfunc=Q_NULLPTR;
+		void* userDataPtr=Q_NULLPTR;
+		OsculatingFunctType *osculatingFunc = Q_NULLPTR;
 		bool closeOrbit = true; //  = pd.value(secname+"/closeOrbit", true).toBool();   2017: THIS ENTRY NO LONGER EXISTS!
 		double semi_major_axis; // used again below.
 
@@ -888,7 +892,7 @@ bool SolarSystem::loadPlanets(const QString& filePath)
 			posfunc = &get_pluto_helio_coordsv;
 
 
-		if (posfunc==NULL)
+		if (posfunc==Q_NULLPTR)
 		{
 			qCritical() << "ERROR : can't find posfunc " << coordFuncName << " for " << englishName;
 			exit(-1);
@@ -1237,18 +1241,25 @@ void SolarSystem::draw(StelCore* core)
 	// AstroCalcDialog
 	if (getFlagEphemerisMarkers())
 	{
-		StelProjectorP prj = core->getProjection(StelCore::FrameJ2000); // , StelCore::RefractionOff);
+		StelProjectorP prj;
+		if (getFlagEphemerisHorizontalCoordinates())
+			prj = core->getProjection(StelCore::FrameAltAz);
+		else
+			prj = core->getProjection(StelCore::FrameJ2000); // , StelCore::RefractionOff);
 		StelPainter sPainter(prj);
 
 		float size, shift;
+		bool showDates = getFlagEphemerisDates();
+		bool showMagnitudes = getFlagEphemerisMagnitudes();
+		QString info = "";
 
-		for (int i =0; i< AstroCalcDialog::EphemerisListJ2000.count(); i++)
+		for (int i =0; i< AstroCalcDialog::EphemerisListCoords.count(); i++)
 		{
 			// draw EphemerisListJ2000[i];
 			Vec3d win;
 
 			// Check visibility of pointer
-			if (!(sPainter.getProjector()->projectCheck(AstroCalcDialog::EphemerisListJ2000[i], win)))
+			if (!(sPainter.getProjector()->projectCheck(AstroCalcDialog::EphemerisListCoords[i], win)))
 				continue;
 
 			if (i == AstroCalcDialog::DisplayedPositionIndex)
@@ -1265,12 +1276,19 @@ void SolarSystem::draw(StelCore* core)
 			sPainter.setBlending(true, GL_ONE, GL_ONE);
 
 			texCircle->bind();
-			sPainter.drawSprite2dMode(AstroCalcDialog::EphemerisListJ2000[i], size);
+			sPainter.drawSprite2dMode(AstroCalcDialog::EphemerisListCoords[i], size);
 
-			if (getFlagEphemerisDates())
+			if (showDates || showMagnitudes)
 			{
 				shift = 3.f + size/1.6f;
-				sPainter.drawText(AstroCalcDialog::EphemerisListJ2000[i], AstroCalcDialog::EphemerisListDates[i], 0, shift, shift, false);
+				if (showDates && showMagnitudes)
+					info = QString("%1 (%2)").arg(AstroCalcDialog::EphemerisListDates[i], QString::number(AstroCalcDialog::EphemerisListMagnitudes[i], 'f', 2));
+				if (showDates && !showMagnitudes)
+					info = AstroCalcDialog::EphemerisListDates[i];
+				if (!showDates && showMagnitudes)
+					info = QString::number(AstroCalcDialog::EphemerisListMagnitudes[i], 'f', 2);
+
+				sPainter.drawText(AstroCalcDialog::EphemerisListCoords[i], info, 0, shift, shift, false);
 			}
 		}
 	}
@@ -1677,7 +1695,7 @@ void SolarSystem::setFlagEphemerisMarkers(bool b)
 	if (b!=ephemerisMarkersDisplayed)
 	{
 		ephemerisMarkersDisplayed=b;
-		conf->setValue("astro/flag_ephemeris_markers", b); // Immediate saving of state
+		conf->setValue("astrocalc/flag_ephemeris_markers", b); // Immediate saving of state
 		emit ephemerisMarkersChanged(b);
 	}
 }
@@ -1687,12 +1705,27 @@ bool SolarSystem::getFlagEphemerisMarkers() const
 	return ephemerisMarkersDisplayed;
 }
 
+void SolarSystem::setFlagEphemerisHorizontalCoordinates(bool b)
+{
+	if (b!=ephemerisHorizontalCoordinates)
+	{
+		ephemerisHorizontalCoordinates=b;
+		conf->setValue("astrocalc/flag_ephemeris_horizontal", b); // Immediate saving of state
+		emit ephemerisHorizontalCoordinatesChanged(b);
+	}
+}
+
+bool SolarSystem::getFlagEphemerisHorizontalCoordinates() const
+{
+	return ephemerisHorizontalCoordinates;
+}
+
 void SolarSystem::setFlagEphemerisDates(bool b)
 {
 	if (b!=ephemerisDatesDisplayed)
 	{
 		ephemerisDatesDisplayed=b;
-		conf->setValue("astro/flag_ephemeris_dates", b); // Immediate saving of state
+		conf->setValue("astrocalc/flag_ephemeris_dates", b); // Immediate saving of state
 		emit ephemerisDatesChanged(b);
 	}
 }
@@ -1700,6 +1733,21 @@ void SolarSystem::setFlagEphemerisDates(bool b)
 bool SolarSystem::getFlagEphemerisDates() const
 {
 	return ephemerisDatesDisplayed;
+}
+
+void SolarSystem::setFlagEphemerisMagnitudes(bool b)
+{
+	if (b!=ephemerisMagnitudesDisplayed)
+	{
+		ephemerisMagnitudesDisplayed=b;
+		conf->setValue("astrocalc/flag_ephemeris_magnitudes", b); // Immediate saving of state
+		emit ephemerisMagnitudesChanged(b);
+	}
+}
+
+bool SolarSystem::getFlagEphemerisMagnitudes() const
+{
+	return ephemerisMagnitudesDisplayed;
 }
 
 void SolarSystem::setFlagNativePlanetNames(bool b)
@@ -2094,7 +2142,7 @@ void SolarSystem::reloadPlanets()
 	foreach (Orbit* orb, orbits)
 	{
 		delete orb;
-		orb = NULL;
+		orb = Q_NULLPTR;
 	}
 	orbits.clear();
 
@@ -2104,7 +2152,7 @@ void SolarSystem::reloadPlanets()
 	Planet::texEarthShadow.clear(); //Loaded in loadPlanets()
 
 	delete allTrails;
-	allTrails = NULL;
+	allTrails = Q_NULLPTR;
 
 	foreach (PlanetP p, systemPlanets)
 	{
@@ -2152,13 +2200,13 @@ void SolarSystem::reloadPlanets()
 // Set the algorithm for computation of apparent magnitudes for planets in case  observer on the Earth
 void SolarSystem::setApparentMagnitudeAlgorithmOnEarth(QString algorithm)
 {
-	getEarth()->setApparentMagnitudeAlgorithm(algorithm);
+	Planet::setApparentMagnitudeAlgorithm(algorithm);
 }
 
 // Get the algorithm used for computation of apparent magnitudes for planets in case  observer on the Earth
 QString SolarSystem::getApparentMagnitudeAlgorithmOnEarth() const
 {
-	return getEarth()->getApparentMagnitudeAlgorithmString();
+	return Planet::getApparentMagnitudeAlgorithmString();
 }
 
 void SolarSystem::setFlagPermanentOrbits(bool b)

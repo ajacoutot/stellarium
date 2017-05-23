@@ -118,6 +118,8 @@ GLuint Planet::shadowTex = 0;
 
 QMap<Planet::PlanetType, QString> Planet::pTypeMap;
 QMap<Planet::ApparentMagnitudeAlgorithm, QString> Planet::vMagAlgorithmMap;
+Planet::ApparentMagnitudeAlgorithm Planet::vMagAlgorithm;
+
 
 #define STRINGIFY2(a) #a
 #define STRINGIFY(a) STRINGIFY2(a)
@@ -143,7 +145,7 @@ bool Planet::PlanetOBJModel::loadGL()
 	{
 		//delete StelOBJ because the data is no longer needed
 		delete obj;
-		obj = NULL;
+		obj = Q_NULLPTR;
 		//make sure the vector has enough space to hold the projected data
 		projectedPosArray.resize(posArray.size());
 		//create the GL buffer for the projection
@@ -207,22 +209,21 @@ Planet::Planet(const QString& englishName,
 	  outgas_falloff(0.f),
 	  rotLocalToParent(Mat4d::identity()),
 	  axisRotation(0.f),
-	  objModel(NULL),
-	  objModelLoader(NULL),
-	  rings(NULL),
+	  objModel(Q_NULLPTR),
+	  objModelLoader(Q_NULLPTR),
+	  rings(Q_NULLPTR),
 	  distance(0.0),
 	  sphereScale(1.f),
 	  lastJDE(J2000),
 	  coordFunc(coordFunc),
 	  userDataPtr(auserDataPtr),
 	  osculatingFunc(osculatingFunc),
-	  parent(NULL),
+	  parent(Q_NULLPTR),
 	  flagLabels(true),
 	  hidden(hidden),
 	  atmosphere(hasAtmosphere),
 	  halo(hasHalo),
-	  vMagAlgorithm(Planet::UndefinedAlgorithm),
-	  gl(NULL)
+	  gl(Q_NULLPTR)
 {
 	// Initialize pType with the key found in pTypeMap, or mark planet type as undefined.
 	// The latter condition should obviously never happen.
@@ -281,13 +282,10 @@ void Planet::init()
 		vMagAlgorithmMap.clear();
 	}
 	vMagAlgorithmMap.insert(Planet::Expl_Sup_2013,	"ExpSup2013");
-	vMagAlgorithmMap.insert(Planet::Expl_Sup_1992,	"planesas"); // deprecate in 0.16, remove later. TODO: Rename the other strings. MAYBE BETTER: Use the metaobject?
 	vMagAlgorithmMap.insert(Planet::Expl_Sup_1992,	"ExpSup1992");
-	vMagAlgorithmMap.insert(Planet::Mueller_1893,	"mueller");     // deprecate in 0.16, remove later.
-	vMagAlgorithmMap.insert(Planet::Mueller_1893,	"Mueller1893"); // better name
-	vMagAlgorithmMap.insert(Planet::Astr_Alm_1984,	"harris");      // deprecate in 0.16, remove later
+	vMagAlgorithmMap.insert(Planet::Mueller_1893,	"Mueller1893"); // better name	
 	vMagAlgorithmMap.insert(Planet::Astr_Alm_1984,	"AstrAlm1984"); // consistent name
-	vMagAlgorithmMap.insert(Planet::Generic,	"generic"),
+	vMagAlgorithmMap.insert(Planet::Generic,	"Generic"),	
 	vMagAlgorithmMap.insert(Planet::UndefinedAlgorithm, "");
 
 	updatePlanetCorrections(J2000, 3);
@@ -381,6 +379,9 @@ QString Planet::getInfoString(const StelCore* core, const InfoStringGroup& flags
 	}
 
 	oss << getPositionInfoString(core, flags);
+
+	// Debug help.
+	//oss << "Apparent Magnitude Algorithm: " << getApparentMagnitudeAlgorithmString() << " " << vMagAlgorithm << "<br>";
 
 	// GZ This is mostly for debugging. Maybe also useful for letting people use our results to cross-check theirs, but we should not act as reference, currently...
 	// TODO: maybe separate this out into:
@@ -1749,7 +1750,7 @@ float Planet::getVMagnitude(const StelCore* core) const
 		// Mueller  --> Mueller_1893
 		// Harris   --> Astr_Eph_1984
 
-		switch (core->getCurrentPlanet()->getApparentMagnitudeAlgorithm())
+		switch (Planet::getApparentMagnitudeAlgorithm())
 		{
 			case UndefinedAlgorithm:	// The most recent solution should be activated by default
 			case Expl_Sup_2013:
@@ -2359,7 +2360,7 @@ void Planet::initShader()
 
 void Planet::deinitShader()
 {
-	//note that it is not necessary to check for NULL before delete
+	//note that it is not necessary to check for Q_NULLPTR before delete
 	delete planetShaderProgram;
 	planetShaderProgram = Q_NULLPTR;
 	delete ringPlanetShaderProgram;
@@ -2426,8 +2427,8 @@ bool Planet::initFBO()
 
 #ifndef DEBUG_SHADOWMAP
 		//create the texture
-		//note that the 'type' must be GL_UNSIGNED_SHORT or GL_UNSIGNED_INT for ES2 compatibility, even if the 'pixels' are NULL
-		GL(gl->glTexImage2D(GL_TEXTURE_2D, 0, isGLESv2?GL_DEPTH_COMPONENT:GL_DEPTH_COMPONENT16, SM_SIZE, SM_SIZE, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL));
+		//note that the 'type' must be GL_UNSIGNED_SHORT or GL_UNSIGNED_INT for ES2 compatibility, even if the 'pixels' are Q_NULLPTR
+		GL(gl->glTexImage2D(GL_TEXTURE_2D, 0, isGLESv2?GL_DEPTH_COMPONENT:GL_DEPTH_COMPONENT16, SM_SIZE, SM_SIZE, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, Q_NULLPTR));
 
 		//we dont use QOpenGLFramebuffer because we dont want a color buffer...
 		GL(gl->glGenFramebuffers(1, &shadowFBO));
@@ -2600,7 +2601,7 @@ void Planet::draw3dModel(StelCore* core, StelProjector::ModelViewTranformP trans
 		core->setClippingPlanes(n,f);  // Restore old clipping planes
 
 		delete sPainter;
-		sPainter=NULL;
+		sPainter=Q_NULLPTR;
 	}
 
 	bool allowDrawHalo = true;
@@ -2919,7 +2920,7 @@ void Planet::drawSphere(StelPainter* painter, float screenSz, bool drawOnlyRing)
 
 	RenderData rData = setCommonShaderUniforms(*painter,shader,*shaderVars);
 	
-	if (rings!=NULL)
+	if (rings!=Q_NULLPTR)
 	{
 		GL(ringPlanetShaderProgram->setUniformValue(ringPlanetShaderVars.isRing, false));
 		GL(ringPlanetShaderProgram->setUniformValue(ringPlanetShaderVars.ring, true));
@@ -3016,7 +3017,7 @@ Planet::PlanetOBJModel* Planet::loadObjModel() const
 		//object loading failed
 		qCritical()<<"Could not load planet OBJ model for"<<englishName;
 		delete mdl;
-		return NULL;
+		return Q_NULLPTR;
 	}
 
 	//ideally, all planet OBJs should only have a single object with a single material
@@ -3061,7 +3062,7 @@ bool Planet::ensureObjLoaded()
 			//the model loading has just finished, save the result
 			objModel = objModelLoader->result();
 			delete objModelLoader; //we dont need the result anymore
-			objModelLoader = NULL;
+			objModelLoader = Q_NULLPTR;
 
 			if(!objModel)
 			{
@@ -3076,7 +3077,7 @@ bool Planet::ensureObjLoaded()
 				if(!objModel->loadGL())
 				{
 					delete objModel;
-					objModel = NULL;
+					objModel = Q_NULLPTR;
 					objModelPath.clear();
 					qWarning()<<"Cannot load OBJ model into OpenGL for solar system object"<<getEnglishName();
 					return false;
@@ -3129,7 +3130,7 @@ bool Planet::drawObjModel(StelPainter *painter, float screenSz)
 		//HACK: there is no texture defined, we create a 1x1 pixel texture with color*albedo
 		//this is not the most efficient method, but prevents having to rewrite the shader to work without a texture
 		//removing some complexity in managing this use-case
-		Vec3f texCol = haloColor * albedo * 255.0f + 0.5f;
+		Vec3f texCol = haloColor * albedo * 255.0f + Vec3f(0.5f);
 		//convert to byte
 		Vector3<GLubyte> colByte(texCol[0],texCol[1],texCol[2]);
 		GLuint tex;
@@ -3203,7 +3204,7 @@ bool Planet::drawObjModel(StelPainter *painter, float screenSz)
 
 	//unprojectedVertex, normalIn and texCoord are set by the StelOpenGLArray
 	//we only need to set the freshly projected data
-	GL(shd->setAttributeArray("vertex",GL_FLOAT,NULL,3,0));
+	GL(shd->setAttributeArray("vertex",GL_FLOAT,Q_NULLPTR,3,0));
 	GL(shd->enableAttributeArray("vertex"));
 	objModel->projPosBuffer->release();
 
@@ -3354,7 +3355,7 @@ bool Planet::drawObjShadowMap(StelPainter *painter, QMatrix4x4& shadowMatrix)
 
 #ifdef DEBUG_SHADOWMAP
 	//display the FB contents on-screen
-	QOpenGLFramebufferObject::blitFramebuffer(NULL,shadowFBO);
+	QOpenGLFramebufferObject::blitFramebuffer(Q_NULLPTR,shadowFBO);
 #endif
 
 	return true;
@@ -3530,7 +3531,8 @@ void Planet::update(int deltaTime)
 
 void Planet::setApparentMagnitudeAlgorithm(QString algorithm)
 {
-	vMagAlgorithm = vMagAlgorithmMap.key(algorithm.toLower(), Planet::UndefinedAlgorithm);
+	// sync default value with ViewDialog and SolarSystem!
+	vMagAlgorithm = vMagAlgorithmMap.key(algorithm, Planet::Expl_Sup_2013);
 }
 
 void Planet::updatePlanetCorrections(const double JDE, const int planet)

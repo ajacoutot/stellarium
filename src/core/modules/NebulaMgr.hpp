@@ -78,6 +78,11 @@ class NebulaMgr : public StelObjectModule
 		   WRITE setFlagSurfaceBrightnessUsage
 		   NOTIFY flagSurfaceBrightnessUsageChanged
 		   )
+	Q_PROPERTY(bool flagSurfaceBrightnessArcsecUsage
+		   READ getFlagSurfaceBrightnessArcsecUsage
+		   WRITE setFlagSurfaceBrightnessArcsecUsage
+		   NOTIFY flagSurfaceBrightnessArcsecUsageChanged
+		   )
 	Q_PROPERTY(double labelsAmount
 		   READ getLabelsAmount
 		   WRITE setLabelsAmount
@@ -283,12 +288,12 @@ public:
 	//! @return an list containing the nebulae located inside the limitFov circle around position v.
 	virtual QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const;
 
-	//! Return the matching nebula object's pointer if exists or NULL.
+	//! Return the matching nebula object's pointer if exists or an "empty" StelObjectP.
 	//! @param nameI18n The case in-sensistive nebula name or NGC M catalog name : format can
 	//! be M31, M 31, NGC31, NGC 31
 	virtual StelObjectP searchByNameI18n(const QString& nameI18n) const;
 
-	//! Return the matching nebula if exists or NULL.
+	//! Return the matching nebula if exists or Q_NULLPTR.
 	//! @param name The case in-sensistive standard program name
 	virtual StelObjectP searchByName(const QString& name) const;
 
@@ -667,6 +672,11 @@ public slots:
 	//! Get whether hints (symbols) are visible according to surface brightness value.
 	bool getFlagSurfaceBrightnessUsage(void) const { return Nebula::surfaceBrightnessUsage; }
 
+	//! Set flag for usage of measure unit mag/arcsec^2 to surface brightness value.
+	void setFlagSurfaceBrightnessArcsecUsage(const bool usage) { Nebula::flagUseArcsecSurfaceBrightness=usage; }
+	//! Get flag for usage of measure unit mag/arcsec^2 to surface brightness value.
+	bool getFlagSurfaceBrightnessArcsecUsage(void) const { return Nebula::flagUseArcsecSurfaceBrightness; }
+
 	//! Set flag used to turn on and off Nebula rendering.
 	void setFlagShow(bool b) { flagShow = b; }
 	//! Get value of flag used to turn on and off Nebula rendering.
@@ -715,6 +725,7 @@ signals:
 	void hintsProportionalChanged(bool b);
 	void designationUsageChanged(bool b);
 	void flagSurfaceBrightnessUsageChanged(bool b);
+	void flagSurfaceBrightnessArcsecUsageChanged(bool b);
 	void labelsAmountChanged(double a);
 	void hintsAmountChanged(double f);
 

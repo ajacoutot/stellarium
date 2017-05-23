@@ -63,7 +63,7 @@ public:
 
 	//! Constructs an empty StelOpenGLArray. No OpenGL objects are created with this call,
 	//! so this can be used without a GL context.
-	StelOpenGLArray(QObject* parent = NULL);
+	StelOpenGLArray(QObject* parent = Q_NULLPTR);
 	//! Releases the OpenGL data, if it has not happened yet.
 	~StelOpenGLArray();
 
@@ -138,7 +138,7 @@ private:
 	int m_indexCount;
 	size_t m_memoryUsage;
 
-	qint32 m_offsets[ATTLOC_SIZE];
+	size_t m_offsets[ATTLOC_SIZE];
 	GLint m_sizes[ATTLOC_SIZE];
 	GLenum m_types[ATTLOC_SIZE];
 	GLsizei m_strides[ATTLOC_SIZE];

@@ -85,6 +85,7 @@ Vec3f Nebula::starColor = Vec3f(1.0f,1.0f,0.1f);
 bool Nebula::flagUseTypeFilters = false;
 Nebula::CatalogGroup Nebula::catalogFilters = Nebula::CatalogGroup(0);
 Nebula::TypeGroup Nebula::typeFilters = Nebula::TypeGroup(Nebula::AllTypes);
+bool Nebula::flagUseArcsecSurfaceBrightness = false;
 
 Nebula::Nebula()
 	: DSO_nb(0)
@@ -221,18 +222,35 @@ QString Nebula::getInfoString(const StelCore *core, const InfoStringGroup& flags
 		if (vMag < 50 && bMag < 50)
 			oss << q_("Color Index (B-V): <b>%1</b>").arg(QString::number(bMag-vMag, 'f', 2)) << "<br>";
 	}
-	if (nType != NebDn && vMag < 50 && flags&Extra)
+	float mmag = qMin(vMag,bMag);
+	if (nType != NebDn && mmag < 50 && flags&Extra)
 	{
+		QString sb = q_("Surface brightness");
+		QString ae = q_("after extinction");
+		QString mu = QString("<sup>m</sup>/%1'").arg(QChar(0x2B1C));
+		if (flagUseArcsecSurfaceBrightness)
+			mu = QString("<sup>m</sup>/%1\"").arg(QChar(0x2B1C));
+
 		if (core->getSkyDrawer()->getFlagHasAtmosphere() && (alt_app>-3.0*M_PI/180.0)) // Don't show extincted surface brightness much below horizon where model is meaningless.
 		{
-			if (getSurfaceBrightness(core)<99 && getSurfaceBrightnessWithExtinction(core)<99)
-				oss << q_("Surface brightness: <b>%1</b> (after extinction: <b>%2</b>)").arg(QString::number(getSurfaceBrightness(core), 'f', 2),
-													     QString::number(getSurfaceBrightnessWithExtinction(core), 'f', 2)) << "<br>";
+			if (getSurfaceBrightness(core)<99)
+			{
+				if (getSurfaceBrightnessWithExtinction(core)<99)
+					oss << QString("%1: <b>%2</b> %5 (%3: <b>%4</b> %5)").arg(sb, QString::number(getSurfaceBrightness(core, flagUseArcsecSurfaceBrightness), 'f', 2),
+												  ae, QString::number(getSurfaceBrightnessWithExtinction(core, flagUseArcsecSurfaceBrightness), 'f', 2), mu) << "<br>";
+				else
+					oss << QString("%1: <b>%2</b> %3").arg(sb, QString::number(getSurfaceBrightness(core, flagUseArcsecSurfaceBrightness), 'f', 2), mu) << "<br>";
+
+				oss << q_("Contrast index: %1").arg(QString::number(getContrastIndex(core), 'f', 2)) << "<br />";
+			}
 		}
 		else
 		{
 			if (getSurfaceBrightness(core)<99)
-				oss << q_("Surface brightness: <b>%1</b>").arg(QString::number(getSurfaceBrightness(core), 'f', 2)) << "<br>";
+			{
+				oss << QString("%1: <b>%2</b> %3").arg(sb, QString::number(getSurfaceBrightness(core, flagUseArcsecSurfaceBrightness), 'f', 2), mu) << "<br>";
+				oss << q_("Contrast index: %1").arg(QString::number(getContrastIndex(core), 'f', 2)) << "<br />";
+			}
 		}
 	}
 
@@ -429,20 +447,43 @@ double Nebula::getCloseViewFov(const StelCore*) const
 	return majorAxisSize>0 ? majorAxisSize * 4 : 1;
 }
 
-float Nebula::getSurfaceBrightness(const StelCore* core) const
+float Nebula::getSurfaceBrightness(const StelCore* core, bool arcsec) const
 {
-	if (getVMagnitude(core)<99.f && majorAxisSize>0 && nType!=NebDn)
-		return getVMagnitude(core) + 2.5*log10(getSurfaceArea()*3600.f);
+	float mag = getVMagnitude(core);
+	float sq = 3600.f; // arcmin^2
+	if (arcsec)
+		sq = 12.96e6; // 3600.f*3600.f, i.e. arcsec^2
+	if (bMag < 50.f && mag > 50.f)
+		mag = bMag;
+	if (mag<99.f && majorAxisSize>0 && nType!=NebDn)
+		return mag + 2.5*log10(getSurfaceArea()*sq);
 	else
 		return 99.f;
 }
 
-float Nebula::getSurfaceBrightnessWithExtinction(const StelCore* core) const
+float Nebula::getSurfaceBrightnessWithExtinction(const StelCore* core, bool arcsec) const
 {
+	float sq = 3600.f; // arcmin^2
+	if (arcsec)
+		sq = 12.96e6; // 3600.f*3600.f, i.e. arcsec^2
 	if (getVMagnitudeWithExtinction(core)<99.f && majorAxisSize>0 && nType!=NebDn)
-		return getVMagnitudeWithExtinction(core) + 2.5*log10(getSurfaceArea()*3600.f);
+		return getVMagnitudeWithExtinction(core) + 2.5*log10(getSurfaceArea()*sq);
 	else
 		return 99.f;
+}
+
+float Nebula::getContrastIndex(const StelCore* core) const
+{
+	// Compute an extended object's contrast index: http://www.unihedron.com/projects/darksky/NELM2BCalc.html
+
+	// Sky brightness
+	// Source: Schaefer, B.E. Feb. 1990. Telescopic Limiting Magnitude. PASP 102:212-229
+	// URL: http://adsbit.harvard.edu/cgi-bin/nph-iarticle_query?bibcode=1990PASP..102..212S [1990PASP..102..212S]
+	float B_mpsas = 21.58 - 5*log10(std::pow(10, 1.586 - core->getSkyDrawer()->getNELMFromBortleScale()/5)-1);
+	// Compute an extended object's contrast index
+	// Source: Clark, R.N., 1990. Appendix E in Visual Astronomy of the Deep Sky, Cambridge University Press and Sky Publishing.
+	// URL: http://www.clarkvision.com/visastro/appendix-e.html
+	return -0.4 * (getSurfaceBrightnessWithExtinction(core, true) - B_mpsas);
 }
 
 float Nebula::getSurfaceArea(void) const
@@ -694,7 +735,7 @@ void Nebula::drawLabel(StelPainter& sPainter, float maxMagLabel)
 	else
 		sPainter.setColor(col[0], col[1], col[2], 0.f);
 
-	float size = getAngularSize(NULL)*M_PI/180.*sPainter.getProjector()->getPixelPerRadAtCenter();
+	float size = getAngularSize(Q_NULLPTR)*M_PI/180.*sPainter.getProjector()->getPixelPerRadAtCenter();
 	float shift = 4.f + (drawHintProportional ? size : size/1.8f);
 
 	QString str = getNameI18n();
@@ -755,7 +796,7 @@ void Nebula::readDSO(QDataStream &in)
 	StelUtils::spheToRect(ra,dec,XYZ);
 	Q_ASSERT(fabs(XYZ.lengthSquared()-1.)<0.000000001);
 	nType = (Nebula::NebulaType)oType;
-	pointRegion = SphericalRegionP(new SphericalPoint(getJ2000EquatorialPos(NULL)));
+	pointRegion = SphericalRegionP(new SphericalPoint(getJ2000EquatorialPos(Q_NULLPTR)));
 }
 
 bool Nebula::objectInDisplayedType() const

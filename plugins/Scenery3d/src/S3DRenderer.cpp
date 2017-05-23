@@ -45,7 +45,8 @@
 
 Q_LOGGING_CATEGORY(s3drenderer, "stel.plugin.scenery3d.renderer")
 
-#define GET_GLERROR() StelOpenGL::checkGLErrors(__FILE__,__LINE__);
+// (cast return value to void to silence Coverity)
+#define GET_GLERROR() (void)StelOpenGL::checkGLErrors(__FILE__,__LINE__);
 
 //macro for easier uniform setting
 #define SET_UNIFORM(shd,uni,val) shd->setUniformValue(shaderManager.uniformLocation(shd,uni),val)
@@ -66,13 +67,16 @@ GLExtFuncs* glExtFuncs;
 S3DRenderer::S3DRenderer(QObject *parent)
     :
       QObject(parent),
-      //sun(NULL), moon(NULL), venus(NULL),
+      sun(Q_NULLPTR), moon(Q_NULLPTR), venus(Q_NULLPTR),
+      currentScene(Q_NULLPTR),
       supportsGSCubemapping(false), supportsShadows(false), supportsShadowFiltering(false), isANGLE(false), maximumFramebufferSize(0),
+      defaultFBO(-1),
       torchBrightness(0.5f), torchRange(5.0f), textEnabled(false), debugEnabled(false), fixShadowData(false),
       simpleShadows(false), fullCubemapShadows(false), cubemappingMode(S3DEnum::CM_TEXTURES), //set it to 6 textures as a safe default (Cubemap should work on ANGLE, but does not...)
       reinitCubemapping(true), reinitShadowmapping(true),
       cubemapSize(1024),shadowmapSize(1024),wasMovedInLastDrawCall(false),
-      core(NULL), landscapeMgr(NULL),
+      core(Q_NULLPTR), landscapeMgr(Q_NULLPTR),
+      backfaceCullState(true), blendEnabled(false), lastMaterial(Q_NULLPTR), curShader(Q_NULLPTR),
       drawnTriangles(0), drawnModels(0), materialSwitches(0), shaderSwitches(0),
       requiresCubemap(false), cubemappingUsedLastFrame(false),
       lazyDrawing(false), updateOnlyDominantOnMoving(true), updateSecondDominantOnMoving(true), needsMovementEndUpdate(false),
@@ -99,6 +103,8 @@ S3DRenderer::S3DRenderer(QObject *parent)
 	shaderParameters.torchLight = false;
 	shaderParameters.frustumSplits = 0;
 	shaderParameters.hwShadowSamplers = false;
+
+	renderShaderParameters=shaderParameters;
 
 	debugTextFont.setFamily("Courier");
 	debugTextFont.setPixelSize(16);
@@ -861,7 +867,7 @@ void S3DRenderer::calculateLighting()
 	lightInfo.directionalSource = LightParameters::DS_Sun_Horiz;
 
 	//calculate emissive factor
-	if(l!=NULL)
+	if(l!=Q_NULLPTR)
 	{
 		if(requiresCubemap && lazyDrawing)
 		{
@@ -1275,7 +1281,7 @@ void S3DRenderer::drawFromCubeMap()
 	{
 		//can render in a single draw call
 		glBindTexture(GL_TEXTURE_CUBE_MAP,cubeMapCubeTex);
-		glDrawElements(GL_TRIANGLES,cubeIndexCount,GL_UNSIGNED_SHORT, NULL);
+		glDrawElements(GL_TRIANGLES,cubeIndexCount,GL_UNSIGNED_SHORT, Q_NULLPTR);
 	}
 	else
 	{
@@ -1857,7 +1863,7 @@ bool S3DRenderer::initCubemapping()
 		for (int i=0;i<6;++i)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,0,colorFormat,
-				     cubemapSize,cubemapSize,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+				     cubemapSize,cubemapSize,0,GL_RGBA,GL_UNSIGNED_BYTE,Q_NULLPTR);
 			GET_GLERROR()
 		}
 		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
@@ -1880,7 +1886,7 @@ bool S3DRenderer::initCubemapping()
 			GET_GLERROR()
 
 			glTexImage2D(GL_TEXTURE_2D,0,colorFormat,
-				     cubemapSize,cubemapSize,0,GL_RGBA,GL_UNSIGNED_BYTE,NULL);
+				     cubemapSize,cubemapSize,0,GL_RGBA,GL_UNSIGNED_BYTE,Q_NULLPTR);
 
 			GET_GLERROR()
 		}
@@ -1905,7 +1911,7 @@ bool S3DRenderer::initCubemapping()
 		for (int i=0;i<6;++i)
 		{
 			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X+i,0,depthFormat,
-				     cubemapSize,cubemapSize,0,GL_DEPTH_COMPONENT,GL_UNSIGNED_BYTE,NULL);
+				     cubemapSize,cubemapSize,0,GL_DEPTH_COMPONENT,GL_UNSIGNED_BYTE,Q_NULLPTR);
 
 			GET_GLERROR()
 		}
@@ -2268,7 +2274,7 @@ bool S3DRenderer::initShadowmapping()
 			bool pcssEnabled = shaderParameters.pcss && (shaderParameters.shadowFilterQuality == S3DEnum::SFQ_LOW || shaderParameters.shadowFilterQuality == S3DEnum::SFQ_HIGH);
 
 			//for OpenGL ES2, type has to be UNSIGNED_SHORT or UNSIGNED_INT for depth textures, desktop does probably not care
-			glTexImage2D(GL_TEXTURE_2D, 0, (pcssEnabled ? depthPcss : depthNormal), shadowmapSize, shadowmapSize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
+			glTexImage2D(GL_TEXTURE_2D, 0, (pcssEnabled ? depthPcss : depthNormal), shadowmapSize, shadowmapSize, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, Q_NULLPTR);
 
 			//we use hardware-accelerated depth compare mode, unless pcss is used
 			shaderParameters.hwShadowSamplers = false;
