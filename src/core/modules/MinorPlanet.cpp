@@ -314,7 +314,7 @@ double MinorPlanet::getSiderealPeriod() const
 //		period = 0;
 
 //	return period;
-	return StelUtils::calculateSiderealPeriod(((CometOrbit*)userDataPtr)->getSemimajorAxis());
+	return StelUtils::calculateSiderealPeriod(((CometOrbit*)orbitPtr)->getSemimajorAxis());
 }
 
 float MinorPlanet::getVMagnitude(const StelCore* core) const

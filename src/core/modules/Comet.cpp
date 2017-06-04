@@ -61,7 +61,7 @@ Comet::Comet(const QString& englishName,
 	     const QString& atexMapName,
 	     const QString& aobjModelName,
 	     posFuncType coordFunc,
-	     void* auserDataPtr,
+	     void* orbitPtr,
 	     OsculatingFunctType *osculatingFunc,
 	     bool acloseOrbit,
 	     bool hidden,
@@ -79,7 +79,7 @@ Comet::Comet(const QString& englishName,
 		  "", // no normalmap.
 		  aobjModelName,
 		  coordFunc,
-		  auserDataPtr,
+		  orbitPtr,
 		  osculatingFunc,
 		  acloseOrbit,
 		  hidden,
@@ -163,7 +163,7 @@ QString Comet::getInfoString(const StelCore *core, const InfoStringGroup &flags)
 	if (flags&ObjectType && getPlanetType()!=isUNDEFINED)
 	{
 		QString cometType = qc_("non-periodic", "type of comet");
-		if (((CometOrbit *)userDataPtr)->getEccentricity() != 1.0)
+		if (((CometOrbit *)orbitPtr)->getEccentricity() != 1.0)
 		{
 			// Parabolic and hyperbolic comets don't have semi-major axis of the orbit. We have comet with elliptic orbit.
 			cometType = qc_("periodic", "type of comet");
@@ -241,7 +241,7 @@ QString Comet::getInfoString(const StelCore *core, const InfoStringGroup &flags)
 		// GZ: Add speed. I don't know where else to place that bit of information.
 		// xgettext:no-c-format
 		oss << QString(q_("Speed: %1 km/s"))
-			   .arg(((CometOrbit*)userDataPtr)->getVelocity().length()*AU/86400.0, 0, 'f', 3);
+			   .arg(((CometOrbit*)orbitPtr)->getVelocity().length()*AU/86400.0, 0, 'f', 3);
 		oss << "<br>";
 
 		const Vec3d& observerHelioPos = core->getObserverHeliocentricEclipticPos();
@@ -289,7 +289,7 @@ QVariantMap Comet::getInfoMap(const StelCore *core) const
 
 double Comet::getSiderealPeriod() const
 {
-	double semiMajorAxis=((CometOrbit*)userDataPtr)->getSemimajorAxis();
+	double semiMajorAxis=((CometOrbit*)orbitPtr)->getSemimajorAxis();
 	return ((semiMajorAxis>0) ? StelUtils::calculateSiderealPeriod(semiMajorAxis) : 0.);
 }
 
@@ -332,7 +332,7 @@ void Comet::update(int deltaTime)
 	double dateJDE=core->getJDE();
 
 	// The CometOrbit is in fact available in userDataPtr!
-	CometOrbit* orbit=(CometOrbit*)userDataPtr;
+	CometOrbit* orbit=(CometOrbit*)orbitPtr;
 	Q_ASSERT(orbit);
 	if (!orbit->objectDateValid(dateJDE)) return; // don't do anything if out of useful date range. This allows having hundreds of comet elements.
 
@@ -342,6 +342,11 @@ void Comet::update(int deltaTime)
 	if (fabs(lastJDEtail-dateJDE)>deltaJDEtail)
 	{
 		lastJDEtail=dateJDE;
+
+		// The CometOrbit is in fact available in userDataPtr!
+		CometOrbit* orbit=(CometOrbit*)orbitPtr;
+		Q_ASSERT(orbit);
+		if (!orbit->objectDateValid(dateJDE)) return; // out of useful date range. This should allow having hundreds of comet elements.
 
 		if (orbit->getUpdateTails()){
 			// Compute lengths and orientations from orbit object, but only if required.
@@ -492,7 +497,7 @@ void Comet::draw(StelCore* core, float maxMagLabels, const QFont& planetNameFont
 		return;
 	}
 	// The CometOrbit is in fact available in userDataPtr!
-	CometOrbit* orbit=(CometOrbit*)userDataPtr;
+	CometOrbit* orbit=(CometOrbit*)orbitPtr;
 	Q_ASSERT(orbit);
 	if (!orbit->objectDateValid(core->getJDE())) return; // don't draw at all if out of useful date range. This allows having hundreds of comet elements.
 
