@@ -1189,6 +1189,16 @@ void SolarSystem::computePositions(double dateJDE, const Vec3d& observerPos)
 		{
 			p->computePositionWithoutOrbits(dateJDE);
 		}
+		// BEGIN HACK: 0.16.0pre for solar aberration/light time correction: (This fixes eclipse bug LP:#1275092)
+		Vec3d earthPosJDE=getEarth()->getHeliocentricEclipticPos();
+		const double earthDist=earthPosJDE.length();
+		getEarth()->computePosition(dateJDE-earthDist * (AU / (SPEED_OF_LIGHT * 86400)));
+		Vec3d earthPosJDEbefore=getEarth()->getHeliocentricEclipticPos();
+		getSun()->setHeliocentricEclipticPos(earthPosJDE-earthPosJDEbefore);
+
+		// We must reset Earth for the next step!
+		getEarth()->computePosition(dateJDE);
+		// END HACK FOR SOLAR LOGHT TIME/ABERRATION
 		foreach (PlanetP p, systemPlanets)
 		{
 			const double light_speed_correction = (p->getHeliocentricEclipticPos()-observerPos).length() * (AU / (SPEED_OF_LIGHT * 86400));
@@ -1199,6 +1209,12 @@ void SolarSystem::computePositions(double dateJDE, const Vec3d& observerPos)
 			else if (p->englishName=="Uranus")  Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 7);
 			else if (p->englishName=="Neptune") Planet::updatePlanetCorrections(dateJDE-light_speed_correction, 8);
 		}
+
+		// BEGIN HACK PART 2
+		getSun()->setHeliocentricEclipticPos(earthPosJDE-earthPosJDEbefore);
+		// END HACK PART 2
+
+
 	}
 	else
 	{
@@ -2164,6 +2180,8 @@ void SolarSystem::reloadPlanets()
 	// Save flag states
 	bool flagScaleMoon = getFlagMoonScale();
 	float moonScale = getMoonScale();
+	bool flagScaleMinorBodies=getFlagMinorBodyScale();
+	float minorScale= getMinorBodyScale();
 	bool flagPlanets = getFlagPlanets();
 	bool flagHints = getFlagHints();
 	bool flagLabels = getFlagLabels();
@@ -2229,6 +2247,9 @@ void SolarSystem::reloadPlanets()
 	// Restore flag states
 	setFlagMoonScale(flagScaleMoon);
 	setMoonScale(moonScale);
+	setFlagMinorBodyScale(flagScaleMinorBodies);
+	setMinorBodyScale(1.0); // force-reset first to really reach the objects in the next call.
+	setMinorBodyScale(minorScale);
 	setFlagPlanets(flagPlanets);
 	setFlagHints(flagHints);
 	setFlagLabels(flagLabels);
