@@ -45,17 +45,6 @@ class AstroCalcDialog : public StelDialog
 	Q_OBJECT
 
 public:
-	//! Defines the number and the order of the columns in the table that lists planetary positions
-	//! @enum PositionsColumns
-	enum PositionsColumns {
-		ColumnName,		//! name of object
-		ColumnRA,		//! right ascension
-		ColumnDec,		//! declination
-		ColumnMagnitude,	//! magnitude
-		ColumnType,		//! type of object
-		ColumnCount		//! total number of columns
-	};
-
 	//! Defines the number and the order of the columns in the table that lists celestial bodies positions
 	//! @enum CPositionsColumns
 	enum CPositionsColumns {
@@ -124,13 +113,6 @@ protected:
         Ui_astroCalcDialogForm *ui;
 
 private slots:
-	//! Search planetary positions and fill the list.
-	void currentPlanetaryPositions();
-	void selectCurrentPlanetaryPosition(const QModelIndex &modelIndex);	
-
-	void savePlanetaryPositionsMagnitudeLimit(double mag);
-	void savePlanetaryPositionsAboveHorizonFlag(bool b);
-
 	void currentCelestialPositions();
 	void selectCurrentCelestialPosition(const QModelIndex &modelIndex);
 
@@ -154,6 +136,7 @@ private slots:
 	void cleanupPhenomena();
 	void selectCurrentPhenomen(const QModelIndex &modelIndex);
 	void savePhenomena();
+	void savePhenomenaAngularSeparation(double v);
 
 	void savePhenomenaCelestialBody(int index);
 	void savePhenomenaCelestialGroup(int index);
@@ -175,8 +158,11 @@ private slots:
 
 	// WUT
 	void saveWutMagnitudeLimit(double mag);
+	void saveWutTimeInterval(int index);
 	void calculateWutObjects();
 	void selectWutObject();
+
+	void updateAstroCalcData();
 
 	void changePage(QListWidgetItem *current, QListWidgetItem *previous);
 
@@ -194,16 +180,14 @@ private:
 	QHash<QString,QString> wutObjects;
 	QHash<QString,int> wutCategories;
 
-	//! Update header names for planetary and celestial positions tables
-	void setPlanetaryPositionsHeaderNames();
+	//! Update header names for celestial positions tables
 	void setCelestialPositionsHeaderNames();
 	//! Update header names for ephemeris table
 	void setEphemerisHeaderNames();
 	//! Update header names for phenomena table
 	void setPhenomenaHeaderNames();
 
-	//! Init header and list of planetary and celestial positions
-	void initListPlanetaryPositions();
+	//! Init header and list of celestial positions
 	void initListCelestialPositions();
 	//! Init header and list of ephemeris
 	void initListEphemeris();
@@ -263,35 +247,6 @@ private:
 };
 
 // Reimplements the QTreeWidgetItem class to fix the sorting bug
-class ACPlanPosTreeWidgetItem : public QTreeWidgetItem
-{
-public:
-	ACPlanPosTreeWidgetItem(QTreeWidget* parent)
-		: QTreeWidgetItem(parent)
-	{
-	}
-
-private:
-	bool operator < (const QTreeWidgetItem &other) const
-	{
-		int column = treeWidget()->sortColumn();
-
-		if (column == AstroCalcDialog::ColumnRA || column == AstroCalcDialog::ColumnDec)
-		{
-			return StelUtils::getDecAngle(text(column)) < StelUtils::getDecAngle(other.text(column));
-		}
-		else if (column == AstroCalcDialog::ColumnMagnitude)
-		{
-			return text(column).toFloat() < other.text(column).toFloat();
-		}
-		else
-		{
-			return text(column).toLower() < other.text(column).toLower();
-		}
-	}
-};
-
-// Reimplements the QTreeWidgetItem class to fix the sorting bug
 class ACCelPosTreeWidgetItem : public QTreeWidgetItem
 {
 public:
@@ -307,7 +262,7 @@ private:
 
 		if (column == AstroCalcDialog::CColumnName)
 		{
-			QRegExp dso("^(\\w+)\\s*(\\d+)$");
+			QRegExp dso("^(\\w+)\\s*(\\d+)\\s*(.*)$");
 			int a = 0, b = 0;
 			if (dso.exactMatch(text(column)))
 				a = dso.capturedTexts().at(2).toInt();

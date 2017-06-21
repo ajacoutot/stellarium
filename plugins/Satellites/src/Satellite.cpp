@@ -894,9 +894,7 @@ void Satellite::draw(StelCore* core, StelPainter& painter)
 
 	XYZ = getJ2000EquatorialPos(core);
 	StelSkyDrawer* sd = core->getSkyDrawer();
-	Vec3f drawColor = invisibleSatelliteColor;
-	if (visibility == gSatWrapper::VISIBLE) // Use hintColor for visible satellites only
-		drawColor = hintColor;
+	Vec3f drawColor = (visibility == gSatWrapper::VISIBLE) ? hintColor : invisibleSatelliteColor; // Use hintColor for visible satellites only
 	painter.setColor(drawColor[0], drawColor[1], drawColor[2], hintBrightness);
 
 	Vec3d win;

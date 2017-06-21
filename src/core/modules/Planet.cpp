@@ -225,6 +225,7 @@ Planet::Planet(const QString& englishName,
 	// The latter condition should obviously never happen.
 	pType = pTypeMap.key(pTypeStr, Planet::isUNDEFINED);
 	// 0.16: Ensure type is always given!
+	// AW: I've commented the code to the allow flying on spaceship (implemented as an artificial planet)!
 	if (pType==Planet::isUNDEFINED)
 	{
 		qCritical() << "Planet " << englishName << "has no type. Please edit one of ssystem_major.ini or ssystem_minor.ini to ensure operation.";
@@ -235,12 +236,26 @@ Planet::Planet(const QString& englishName,
 	//only try loading textures when there is actually something to load!
 	//prevents some overhead when starting
 	if(!texMapName.isEmpty())
-		texMap = StelApp::getInstance().getTextureManager().createTextureThread(StelFileMgr::getInstallationDir()+"/textures/"+texMapName, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
+	{
+		// TODO: use StelFileMgr::findFileInAllPaths() after introducing an Add-On Manager
+		QString texMapFile = StelFileMgr::findFile("textures/"+texMapName, StelFileMgr::File);
+		if (!texMapFile.isEmpty())
+			texMap = StelApp::getInstance().getTextureManager().createTextureThread(texMapFile, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
+		else
+			qWarning()<<"Cannot resolve path to texture file"<<texMapName<<"of object"<<englishName;
+	}
+
 	if(!normalMapName.isEmpty())
-		normalMap = StelApp::getInstance().getTextureManager().createTextureThread(StelFileMgr::getInstallationDir()+"/textures/"+normalMapName, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
+	{
+		// TODO: use StelFileMgr::findFileInAllPaths() after introducing an Add-On Manager
+		QString normalMapFile = StelFileMgr::findFile("textures/"+normalMapName, StelFileMgr::File);
+		if (!normalMapFile.isEmpty())
+			normalMap = StelApp::getInstance().getTextureManager().createTextureThread(normalMapFile, StelTexture::StelTextureParams(true, GL_LINEAR, GL_REPEAT));
+	}
 	//the OBJ is lazily loaded when first required
 	if(!aobjModelName.isEmpty())
 	{
+		// TODO: use StelFileMgr::findFileInAllPaths() after introducing an Add-On Manager
 		objModelPath = StelFileMgr::findFile("models/"+aobjModelName, StelFileMgr::File);
 		if(objModelPath.isEmpty())
 		{
@@ -266,6 +281,7 @@ void Planet::init()
 	pTypeMap.insert(Planet::isPlanet,	"planet");
 	pTypeMap.insert(Planet::isMoon,		"moon");
 	pTypeMap.insert(Planet::isObserver,	"observer");
+	pTypeMap.insert(Planet::isArtificial,	"artificial");
 	pTypeMap.insert(Planet::isAsteroid,	"asteroid");
 	pTypeMap.insert(Planet::isPlutino,	"plutino");
 	pTypeMap.insert(Planet::isComet,	"comet");
@@ -1502,10 +1518,10 @@ void Planet::draw(StelCore* core, float maxMagLabels, const QFont& planetNameFon
 		viewportBufferSz+=125.f;
 	float viewport_left = prj->getViewportPosX();
 	float viewport_bottom = prj->getViewportPosY();
+
 	if ((prj->project(Vec3d(0.), screenPos)
 	     && screenPos[1]>viewport_bottom - viewportBufferSz && screenPos[1] < viewport_bottom + prj->getViewportHeight()+viewportBufferSz
-	     && screenPos[0]>viewport_left - viewportBufferSz && screenPos[0] < viewport_left + prj->getViewportWidth() + viewportBufferSz)
-			|| permanentDrawingOrbits)
+	     && screenPos[0]>viewport_left - viewportBufferSz && screenPos[0] < viewport_left + prj->getViewportWidth() + viewportBufferSz))
 	{
 		// Draw the name, and the circle if it's not too close from the body it's turning around
 		// this prevents name overlapping (e.g. for Jupiter's satellites)
@@ -1528,6 +1544,9 @@ void Planet::draw(StelCore* core, float maxMagLabels, const QFont& planetNameFon
 
 		draw3dModel(core,transfo,screenSz);
 	}
+	else if (permanentDrawingOrbits) // A special case for demos
+		drawOrbit(core);
+
 	return;
 }
 
@@ -2930,7 +2949,7 @@ Ring::Ring(float radiusMin, float radiusMax, const QString &texname)
 	tex = StelApp::getInstance().getTextureManager().createTexture(StelFileMgr::getInstallationDir()+"/textures/"+texname);
 }
 
-Vec3f Planet::getCurrentOrbitColor()
+Vec3f Planet::getCurrentOrbitColor() const
 {
 	Vec3f orbColor = orbitColor;
 	switch(orbitColorStyle)
