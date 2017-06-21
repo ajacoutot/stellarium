@@ -114,7 +114,7 @@ Atmosphere::~Atmosphere(void)
 }
 
 void Atmosphere::computeColor(double JD, Vec3d _sunPos, Vec3d moonPos, float moonPhase, float moonMagnitude,
-							   StelCore* core, float latitude, float altitude, float temperature, float relativeHumidity)
+							   StelCore* core, float latitude, float altitude, float temperature, float relativeHumidity, float extinctionCoefficient)
 {
 	const StelProjectorP prj = core->getProjection(StelCore::FrameAltAz, StelCore::RefractionOff);
 	if (viewport != prj->getViewport())
