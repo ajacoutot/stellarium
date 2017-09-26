@@ -139,6 +139,7 @@ private slots:
 	// asterisms colors
 	void askAsterismLabelsColor();
 	void askAsterismLinesColor();
+	void askRayHelpersColor();
 
 private:
 	void connectGroupBox(class QGroupBox* groupBox, const QString& actionId);
